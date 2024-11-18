@@ -15,6 +15,8 @@ import { useForm } from "react-hook-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Plus, Minus, HelpCircle } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { Textarea } from "@/components/ui/textarea";
 
 interface AppDataField {
   key: string;
@@ -23,6 +25,7 @@ interface AppDataField {
 
 interface CreateAppForm {
   name: string;
+  description: string;
   webhookUrl: string;
   dataFields: AppDataField[];
 }
@@ -34,6 +37,7 @@ export function AppsCreateDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { data: session } = useSession();
   const queryClient = useQueryClient();
   const { register, handleSubmit, reset, watch, setValue } =
     useForm<CreateAppForm>({
@@ -58,7 +62,7 @@ export function AppsCreateDialog({
       const response = await fetch("/api/apps", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, userEmail: session?.user?.email }),
       });
       if (!response.ok) throw new Error("Failed to create app");
       return response.json();
@@ -80,7 +84,8 @@ export function AppsCreateDialog({
         <DialogHeader>
           <DialogTitle>Create New App</DialogTitle>
           <DialogDescription>
-            Configure your app and its data fields. Data fields will be sent to your app via webhook.
+            Configure your app and its data fields. Data fields will be sent to
+            your app via webhook.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit((data) => createApp.mutate(data))}>
@@ -91,6 +96,16 @@ export function AppsCreateDialog({
                 id="name"
                 {...register("name", { required: true })}
                 placeholder="My App"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                {...register("description", { required: true })}
+                placeholder="Describe what your app does..."
+                className="resize-none"
+                rows={3}
               />
             </div>
             <div className="space-y-2">

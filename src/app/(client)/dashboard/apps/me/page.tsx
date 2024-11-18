@@ -1,8 +1,11 @@
-import { getSession } from "next-auth/react";
+"use server";
+
+import { getServerSession } from "next-auth";
 import { AppsContainer } from "../_components/AppsContainer";
+import { authOptions } from "@/config/nextAuth";
 
 export default async function MyAppsPage() {
-  const session = await getSession();
+  const session = await getServerSession(authOptions);
 
   return (
     <div className="p-8">

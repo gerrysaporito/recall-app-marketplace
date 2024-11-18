@@ -5,7 +5,9 @@ import { WebhookSchema } from "./WebhookSchema";
 
 export const AppSchema = BaseEntitySchema.extend({
   name: z.string(),
+  description: z.string(),
   userId: z.string(),
+  userEmail: z.string(),
   webhookId: z.string(),
   dataFields: z.array(AppDataFieldSchema),
   webhook: WebhookSchema,
