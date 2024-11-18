@@ -208,8 +208,6 @@ export const AppDbService = {
       deletedAt: null,
     };
 
-    console.log({ where });
-
     const [apps, totalCount] = await Promise.all([
       prisma.app.findMany({
         where,
