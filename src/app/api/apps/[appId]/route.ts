@@ -4,25 +4,20 @@ import { AppDbService } from "@/server/services/DbService/AppDbService";
 import { NextRequest } from "next/server";
 
 // Get specific app
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { appId: string } }
-) {
+export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
       return new Response("Unauthorized", { status: 401 });
     }
 
-    const { app } = await AppDbService.getAppById({ appId: params.appId });
-
+    const appId = new URL(request.url).pathname.split("/").pop();
+    if (!appId) {
+      return new Response("App ID is required", { status: 400 });
+    }
+    const { app } = await AppDbService.getAppById({ appId });
     if (!app) {
       return new Response("Not found", { status: 404 });
-    }
-
-    // Only allow access if user owns the app
-    if (app.userId !== session.user?.email) {
-      return new Response("Forbidden", { status: 403 });
     }
 
     return Response.json({ app });
@@ -33,19 +28,29 @@ export async function GET(
 }
 
 // Update app
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { appId: string } }
-) {
+export async function PATCH(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
       return new Response("Unauthorized", { status: 401 });
     }
 
+    const appId = new URL(request.url).pathname.split("/").pop();
+    if (!appId) {
+      return new Response("App ID is required", { status: 400 });
+    }
+    const { app: existingApp } = await AppDbService.getAppById({ appId });
+    if (!existingApp) {
+      return new Response("Not found", { status: 404 });
+    }
+    if (existingApp.userId !== session.user?.email) {
+      return new Response("Forbidden", { status: 403 });
+    }
+
     const body = await request.json();
+
     const { app } = await AppDbService.updateApp({
-      appId: params.appId,
+      appId,
       appArgs: body,
     });
 
@@ -57,31 +62,29 @@ export async function PATCH(
 }
 
 // Delete app
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { appId: string } }
-) {
+export async function DELETE(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return new Response("Unauthorized", { status: 401 });
     }
 
-    // First check if the app exists and belongs to the user
-    const { app } = await AppDbService.getAppById({ appId: params.appId });
-
+    const appId = new URL(request.url).pathname.split("/").pop();
+    if (!appId) {
+      return new Response("App ID is required", { status: 400 });
+    }
+    const { app } = await AppDbService.getAppById({
+      appId,
+    });
     if (!app) {
       return new Response("Not found", { status: 404 });
     }
-
     if (app.userId !== session.user.id) {
       return new Response("Forbidden", { status: 403 });
     }
 
-    // Since I notice there's no delete function in AppDbService,
-    // we'll use update to set deletedAt
     await AppDbService.updateApp({
-      appId: params.appId,
+      appId,
       appArgs: {
         deletedAt: new Date(),
       },
