@@ -1,4 +1,4 @@
-import type { App, AppDataField, User } from "@prisma/client";
+import type { App, AppDataField, User, Prisma } from "@prisma/client";
 import cuid from "cuid";
 import { z } from "zod";
 import { prisma } from "@/config/prisma";
@@ -29,6 +29,15 @@ const CreateAppSchema = z.object({
 const UpdateAppSchema = z.object({
   appId: z.string(),
   appArgs: WriteAppSchema.partial(),
+});
+
+const SearchAppsSchema = z.object({
+  filters: z.object({
+    userId: z.string().optional(),
+    searchTerm: z.string().optional(),
+  }),
+  page: z.number().min(1),
+  itemsPerPage: z.number().min(1),
 });
 
 export const AppDbService = {
@@ -138,5 +147,40 @@ export const AppDbService = {
 
     const result = apps.map((app) => this._parseApp({ model: app }));
     return { apps: result };
+  },
+
+  searchApps: async function (args: z.infer<typeof SearchAppsSchema>): Promise<{
+    apps: z.infer<typeof ReadAppSchema>[];
+    totalCount: number;
+  }> {
+    const { filters, page, itemsPerPage } = SearchAppsSchema.parse(args);
+
+    const where: Prisma.AppWhereInput = {
+      ...(filters.userId && { userId: filters.userId }),
+      deletedAt: null,
+      ...(filters.searchTerm && {
+        OR: [
+          { id: { equals: filters.searchTerm } },
+          { name: { contains: filters.searchTerm } },
+        ],
+      }),
+    };
+
+    const [apps, totalCount] = await Promise.all([
+      prisma.app.findMany({
+        where,
+        include: {
+          user: true,
+          dataFields: { where: { deletedAt: null } },
+        },
+        skip: (page - 1) * itemsPerPage,
+        take: itemsPerPage,
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.app.count({ where }),
+    ]);
+
+    const results = apps.map((app) => this._parseApp({ model: app }));
+    return { apps: results, totalCount };
   },
 };
