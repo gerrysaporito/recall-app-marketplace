@@ -1,34 +1,25 @@
-import type { Job } from 'bullmq';
-import type { WebhookEventSchema } from 'suisei-io/core';
-import {
-  Environment,
-  isLocalEnv,
-  NormalizedError,
-  WebhookEventStatus,
-  WebhookEventType,
-} from 'suisei-io/core';
-import { signWebhookSignature } from 'suisei-io/server';
-import { z } from 'zod';
-import { redis } from '@/config/redis';
-import { DbService } from '@/server/services/DbService';
-import { QueueLogger } from '@/server/services/LoggerService/QueueLogger';
-import { EncryptionService } from '@/server/services/utils/EncryptionService';
-import { normalizeError } from '../../../lib/utils/normalizeError';
-import { BaseLogger } from '../LoggerService/BaseLogger';
+import type { Job, Queue, Worker } from "bullmq";
+import { WebhookEventSchema } from "@/lib/schemas/WebhookEventSchema";
+import { z } from "zod";
+import { redis } from "@/config/redis";
+import { DbService } from "@/server/services/DbService";
+import { QueueLogger } from "@/server/services/LoggerService/QueueLogger";
+import { BaseLogger } from "@/server/services/LoggerService/BaseLogger";
+import { WebhookEventType } from "@/lib/constants/WebhookEventType";
+import { WebhookEventStatus } from "@/lib/constants/WebhookEventStatus";
 
 const EnqueueJobHandlerArgsSchema = z.object({
   webhookEventId: z.string(),
   webhookId: z.string(),
   type: z.nativeEnum(WebhookEventType),
-  env: z.nativeEnum(Environment),
-  teamId: z.string(),
+  userId: z.string(),
   data: z.any(),
   logger: z.instanceof(BaseLogger),
 });
 
 export class WebhookQueueingClass {
-  queues = {} as Record<Environment, any>;
-  workers = {} as Record<Environment, any>;
+  queue: Queue<z.infer<typeof EnqueueJobHandlerArgsSchema>> | undefined;
+  worker: Worker<z.infer<typeof EnqueueJobHandlerArgsSchema>> | undefined;
   backoffAttempts = 5;
   private initialized = false;
 
@@ -39,139 +30,121 @@ export class WebhookQueueingClass {
   async initialize() {
     if (this.initialized) return;
 
-    const { Queue, Worker } = await import('bullmq');
+    const { Queue, Worker } = await import("bullmq");
 
-    Object.values(Environment).forEach((env) => {
-      if (isLocalEnv) {
-        const queueName = this.queueName({ env });
-        this.queues[env] = new Queue(queueName, {
-          connection: redis,
-        });
-        this.workers[env] = new Worker(queueName, this.enqueueJobHandler, {
-          connection: redis,
-          concurrency: 1,
-          limiter: {
-            max: 1,
-            duration: 1000, // Milliseconds
-          },
-        });
-      }
+    const queueName = this.queueName();
+    this.queue = new Queue(queueName, {
+      connection: redis,
+    });
+    this.worker = new Worker(queueName, this.enqueueJobHandler, {
+      connection: redis,
+      concurrency: 1,
+      limiter: {
+        max: 1,
+        duration: 1000, // Milliseconds
+      },
     });
 
     this.initialized = true;
   }
 
-  queueName = (args: { env: Environment }) => {
-    const { env } = args;
-    return `webhook-queue--${env.toLowerCase()}`;
+  queueName = () => {
+    return `webhook-queue`;
   };
 
-  jobName = (args: {
-    webhookId: string;
-    type: WebhookEventType;
-    env: Environment;
-  }) => {
-    const { env, webhookId, type } = args;
+  jobName = (args: { webhookId: string; type: WebhookEventType }) => {
+    const { webhookId, type } = args;
     const timestamp = new Date().getTime();
-    return `webhook-job:${env}:${type}:${webhookId}:${timestamp}`;
+    return `webhook-job:${webhookId}:${type}:${timestamp}`;
   };
 
   backoffDelay = () => 1000 + Math.round(Math.random() * 1000);
 
   formatErrorMessage = (args: {
     webhookId: string;
-    env: Environment;
     errorMessage: string;
   }): string => {
-    const { webhookId, env, errorMessage } = args;
-    return `[${env}] WebhookWorkerHandler (${webhookId}): ${errorMessage}`;
+    const { webhookId, errorMessage } = args;
+    return `WebhookWorkerHandler (${webhookId}): ${errorMessage}`;
   };
 
   enqueueJob = async (
-    args: z.infer<typeof EnqueueJobHandlerArgsSchema>,
-  ): Promise<{ jobs: Job<z.infer<typeof EnqueueJobHandlerArgsSchema>>[] }> => {
+    args: z.infer<typeof EnqueueJobHandlerArgsSchema>
+  ): Promise<{ job: Job<z.infer<typeof EnqueueJobHandlerArgsSchema>> }> => {
     const { webhookId, logger, ...data } =
       EnqueueJobHandlerArgsSchema.parse(args);
     const queueLogger = new QueueLogger({
       ...logger.context,
-      spanId: 'enqueueWebhookJob',
+      spanId: "enqueueWebhookJob",
     });
 
     queueLogger.info({
-      message: 'Initiating webhook jobs',
-      metadata: { teamId: data.teamId, type: data.type },
+      message: "Initiating webhook jobs",
+      metadata: { userId: data.userId, type: data.type },
     });
 
-    const { webhooks: teamWebhooks } =
-      await DbService.webhook.getWebhooksByTeamId({
-        teamId: data.teamId,
-        env: data.env,
+    // Create the webhook event with "pending" status
+    const { webhookEvent } =
+      await DbService.webhook.webhookEvent.createWebhookEvent({
+        webhookEventArgs: {
+          ...data,
+          webhookId,
+          status: WebhookEventStatus.pending,
+          retryCount: 0,
+        },
       });
-    const teamWebhookIds = teamWebhooks.map((webhook) => webhook.id);
 
-    const promiseJobs = (webhookId ? [webhookId] : teamWebhookIds).map(
-      async (webhookId) => {
-        // Create the webhook event with "pending" status
-        const { webhookEvent } =
-          await DbService.webhook.webhookEvent.createWebhookEvent({
-            webhookEventArgs: {
-              ...data,
-              webhookId,
-              status: WebhookEventStatus.pending,
-              retryCount: 0,
-            },
-          });
-
-        queueLogger.info({
-          message: 'Adding job to queue',
-          metadata: { webhookId, webhookEventId: webhookEvent.id },
-        });
-
-        return await this.queues[data.env].add(
-          this.jobName({ webhookId, env: data.env, type: data.type }),
-          {
-            ...data,
-            webhookId,
-            webhookEventId: webhookEvent.id,
-            logger: queueLogger,
-          } satisfies z.input<typeof EnqueueJobHandlerArgsSchema>,
-          {
-            attempts: this.backoffAttempts,
-            backoff: {
-              type: 'exponential',
-              delay: this.backoffDelay(),
-            },
-          },
-        );
-      },
-    );
-
-    const jobs = await Promise.all(promiseJobs);
     queueLogger.info({
-      message: 'Webhook jobs enqueued',
-      metadata: { jobCount: jobs.length },
+      message: "Adding job to queue",
+      metadata: { webhookId, webhookEventId: webhookEvent.id },
     });
-    return { jobs };
+
+    const job = await this.queue?.add(
+      this.jobName({ webhookId, type: data.type }),
+      {
+        ...data,
+        webhookId,
+        webhookEventId: webhookEvent.id,
+        logger: queueLogger,
+      } satisfies z.input<typeof EnqueueJobHandlerArgsSchema>,
+      {
+        attempts: this.backoffAttempts,
+        backoff: {
+          type: "exponential",
+          delay: this.backoffDelay(),
+        },
+      }
+    );
+    if (!job) {
+      throw new Error("Failed to enqueue webhook job");
+    }
+
+    queueLogger.info({
+      message: "Webhook jobs enqueued",
+      metadata: { jobCount: 1 },
+    });
+    return { job };
   };
 
   enqueueJobHandler = async (
-    job: Job<z.infer<typeof EnqueueJobHandlerArgsSchema>>,
+    job: Job<z.infer<typeof EnqueueJobHandlerArgsSchema>>
   ): Promise<{ webhookEvent: z.infer<typeof WebhookEventSchema> | null }> => {
     const result = EnqueueJobHandlerArgsSchema.safeParse(
-      job.data satisfies z.input<typeof EnqueueJobHandlerArgsSchema>,
+      job.data satisfies z.input<typeof EnqueueJobHandlerArgsSchema>
     );
     if (!result.success) {
-      console.error('Failed to parse job data', result.error);
+      console.error("Failed to parse job data", result.error);
       return { webhookEvent: null };
     }
-    const { webhookId, webhookEventId, env, type, data, teamId, logger } =
+    const { webhookId, webhookEventId, userId, type, data, logger } =
       result.data;
 
     logger.info({
-      message: 'Starting to process webhook job',
+      message: "Starting to process webhook job",
       metadata: {
         jobId: job.id,
         webhookId,
+        userId,
         webhookEventId,
         attemptNumber: job.attemptsMade + 1,
       },
@@ -179,10 +152,11 @@ export class WebhookQueueingClass {
 
     if (job.attemptsMade > 0) {
       logger.info({
-        message: 'Retrying webhook request',
+        message: "Retrying webhook request",
         metadata: {
           webhookId,
           webhookEventId,
+          userId,
           attemptNumber: job.attemptsMade + 1,
           maxAttempts: this.backoffAttempts,
         },
@@ -192,7 +166,7 @@ export class WebhookQueueingClass {
     // Update webhook event status to "sending"
     await this.updateWebhookEventStatus(
       webhookEventId,
-      WebhookEventStatus.sending,
+      WebhookEventStatus.sending
     );
 
     // Get the webhook
@@ -205,37 +179,24 @@ export class WebhookQueueingClass {
       const failureReason = `Webhook with ID ${webhookId} not found`;
       await this.updateWebhookEventFailure(webhookEventId, failureReason);
       logger.error({
-        message: 'Webhook not found',
+        message: "Webhook not found",
         error: new Error(failureReason),
         metadata: { webhookId, webhookEventId },
       });
       return { webhookEvent: null };
     }
-    if (webhook.teamId !== teamId) {
-      const failureReason = `Webhook with ID ${webhookId} does not belong to team ${teamId}`;
+    if (webhook.userId !== userId) {
+      const failureReason = `Webhook with ID ${webhookId} does not belong to user ${userId}`;
       await this.updateWebhookEventFailure(webhookEventId, failureReason);
       logger.error({
-        message: 'Webhook team mismatch',
+        message: "Webhook team mismatch",
         error: new Error(failureReason),
-        metadata: { webhookId, teamId, webhookEventId },
-      });
-      return { webhookEvent: null };
-    }
-    if (webhook.env !== env) {
-      const failureReason = `Webhook with ID ${webhookId} does not belong to environment ${env}`;
-      await this.updateWebhookEventFailure(webhookEventId, failureReason);
-      logger.error({
-        message: 'Webhook environment mismatch',
-        error: new Error(failureReason),
-        metadata: { webhookId, env, webhookEventId },
+        metadata: { webhookId, userId, webhookEventId },
       });
       return { webhookEvent: null };
     }
 
     // Send the webhook event to the team's webhook url
-    const { decryptedData: secretKey } = EncryptionService.decryptSymmetric({
-      encryptedData: webhook.encryptedSecretKey,
-    });
     const requestBody = {
       webhookId: webhook.id,
       webhookEventId,
@@ -244,11 +205,11 @@ export class WebhookQueueingClass {
     };
 
     const url = new URL(webhook.url);
-    if (url.protocol !== 'https:') {
+    if (url.protocol !== "https:") {
       const failureReason = `Webhook with ID ${webhookId} is not using HTTPS`;
       await this.updateWebhookEventFailure(webhookEventId, failureReason);
       logger.error({
-        message: 'Insecure webhook URL',
+        message: "Insecure webhook URL",
         error: new Error(failureReason),
         metadata: { webhookId, url: webhook.url, webhookEventId },
       });
@@ -256,7 +217,7 @@ export class WebhookQueueingClass {
     }
 
     logger.info({
-      message: 'Sending webhook request',
+      message: "Sending webhook request",
       metadata: { webhookId, url: webhook.url, webhookEventId },
     });
 
@@ -264,25 +225,20 @@ export class WebhookQueueingClass {
     let response: Response;
     try {
       response = await fetch(url, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          redirect: 'manual',
-          'Content-Type': 'application/json',
-          'X-Signature': signWebhookSignature({
-            config: { suiseiWebhookSecretKey: secretKey },
-            data: { payload: requestBody },
-          }),
-          'X-Timestamp': requestSentAt.toISOString(),
+          redirect: "manual",
+          "Content-Type": "application/json",
+          "X-Timestamp": requestSentAt.toISOString(),
         },
         body: JSON.stringify(requestBody),
       });
-    } catch (error) {
-      const normalizedError = normalizeError({ error });
-      const failureReason = `Failed to send webhook request: ${normalizedError.message}`;
+    } catch (error: any) {
+      const failureReason = `Failed to send webhook request: ${error.message}`;
       await this.updateWebhookEventFailure(webhookEventId, failureReason);
       logger.error({
-        message: 'Webhook request failed',
-        error: normalizedError,
+        message: "Webhook request failed",
+        error: error,
         metadata: { webhookId, url: webhook.url, webhookEventId },
       });
       return { webhookEvent: null };
@@ -292,7 +248,7 @@ export class WebhookQueueingClass {
     const responseTime = responseReceivedAt.getTime() - requestSentAt.getTime();
 
     logger.info({
-      message: 'Webhook response received',
+      message: "Webhook response received",
       metadata: {
         webhookId,
         status: response.status,
@@ -309,8 +265,8 @@ export class WebhookQueueingClass {
       responseBody = JSON.parse(responseText);
     } catch (error) {
       logger.error({
-        message: 'Failed to parse response body as JSON',
-        error: new Error('Failed to parse response body as JSON'),
+        message: "Failed to parse response body as JSON",
+        error: new Error("Failed to parse response body as JSON"),
         metadata: {
           webhookId,
           responseText,
@@ -343,7 +299,7 @@ export class WebhookQueueingClass {
 
     if (failureReason) {
       logger.error({
-        message: 'Webhook request failed with non-2xx status',
+        message: "Webhook request failed with non-2xx status",
         error: new Error(failureReason),
         metadata: {
           webhookId,
@@ -355,7 +311,7 @@ export class WebhookQueueingClass {
       });
     } else {
       logger.info({
-        message: 'Webhook event completed successfully',
+        message: "Webhook event completed successfully",
         metadata: {
           webhookId,
           webhookEventId: updatedWebhookEvent.id,
@@ -366,10 +322,7 @@ export class WebhookQueueingClass {
     }
 
     if (!updatedWebhookEvent) {
-      throw new NormalizedError({
-        message: 'Webhook event not found after update',
-        metadata: { status: 500 },
-      });
+      throw new Error("Webhook event not found after update");
     }
 
     return { webhookEvent: updatedWebhookEvent };
@@ -377,7 +330,7 @@ export class WebhookQueueingClass {
 
   private async updateWebhookEventStatus(
     webhookEventId: string,
-    status: WebhookEventStatus,
+    status: WebhookEventStatus
   ) {
     await DbService.webhook.webhookEvent.updateWebhookEvent({
       webhookEventId,
@@ -387,7 +340,7 @@ export class WebhookQueueingClass {
 
   private async updateWebhookEventFailure(
     webhookEventId: string,
-    failureReason: string,
+    failureReason: string
   ) {
     await DbService.webhook.webhookEvent.updateWebhookEvent({
       webhookEventId,
@@ -411,4 +364,4 @@ const getWebhookQueue = (): WebhookQueueingClass => {
   return global.queues.webhook;
 };
 
-export const WebhookQueue = getWebhookQueue();
+export const WebhookQueueingService = getWebhookQueue();
