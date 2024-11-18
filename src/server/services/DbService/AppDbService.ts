@@ -131,7 +131,7 @@ export const AppDbService = {
       where: { userId, deletedAt: null },
       include: {
         user: true,
-        dataFields: true,
+        dataFields: { where: { deletedAt: null } },
       },
       orderBy: { createdAt: "desc" },
     });
