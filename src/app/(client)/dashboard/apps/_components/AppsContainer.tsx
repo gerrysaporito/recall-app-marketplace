@@ -62,42 +62,26 @@ const SearchFilter: React.FC<{
 }> = ({ filters, handleFilterChange, clearFilters }) => {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
-  return (
-    <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-      <PopoverTrigger asChild>
-        <Button variant="outline" size="icon">
-          <Filter className="h-4 w-4" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-80">
-        <div className="grid gap-4">
-          <div className="space-y-2">
-            <h4 className="font-medium leading-none">Filters</h4>
-            <p className="text-sm text-muted-foreground">
-              Refine your product and price searchTerm
-            </p>
-          </div>
-          <div className="grid gap-2">
-            <div className="grid grid-cols-2 gap-2">
-              <Input
-                type="number"
-                placeholder="Min Price"
-                value={filters.minPrice}
-                onChange={(e) => handleFilterChange("minPrice", e.target.value)}
-              />
-              <Input
-                type="number"
-                placeholder="Max Price"
-                value={filters.maxPrice}
-                onChange={(e) => handleFilterChange("maxPrice", e.target.value)}
-              />
-            </div>
-          </div>
-          <Button onClick={clearFilters} variant="outline">
-            Clear Filters
-          </Button>
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
+  return null;
+  // <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+  //   <PopoverTrigger asChild>
+  //     <Button variant="outline" size="icon">
+  //       <Filter className="h-4 w-4" />
+  //     </Button>
+  //   </PopoverTrigger>
+  //   <PopoverContent className="w-80">
+  //     <div className="grid gap-4">
+  //       <div className="space-y-2">
+  //         <h4 className="font-medium leading-none">Filters</h4>
+  //         <p className="text-sm text-muted-foreground">
+  //           Refine your product and price searchTerm
+  //         </p>
+  //       </div>
+  //       </div>
+  //       <Button onClick={clearFilters} variant="outline">
+  //         Clear Filters
+  //       </Button>
+  //     </div>
+  //   </PopoverContent>
+  // </Popover>
 };
