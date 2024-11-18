@@ -27,6 +27,9 @@ export const env = createEnv({
    * `NEXT_PUBLIC_`.
    */
   client: {
+    NEXT_PUBLIC_NODE_ENV: z
+      .enum(['development', 'production', 'local'])
+      .default('local'),
   },
 
   /**
@@ -35,6 +38,7 @@ export const env = createEnv({
    */
   runtimeEnv: {
     PORT: DEFAULT_PORT,
+    NEXT_PUBLIC_NODE_ENV: process.env.NODE_ENV,
     DATABASE_URL: process.env.DATABASE_URL,
     ENCRYPTION_KEY_SECRET: process.env.ENCRYPTION_KEY_SECRET,
     GITHUB_CLIENT_ID: process.env.GITHUB_CLIENT_ID,

@@ -5,6 +5,7 @@ import { env } from '@/config/env.mjs';
 import { PrismaAdapter } from "@next-auth/prisma-adapter"
 import { prisma } from "@/components/lib/prisma"
 import { compare, hash } from 'bcryptjs';
+import { DbService } from '@/server/services/DbService';
 
 const NextAuthSecret = env.ENCRYPTION_KEY_SECRET;
 
@@ -28,17 +29,15 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Invalid credentials');
         }
 
-        let user = await prisma.user.findUnique({
-          where: { email: credentials.email }
-        });
+        let {user} = await DbService.user.getUserByEmail({ email: credentials.email });
 
         if (!user) {
           const hashedPassword = await hash(credentials.password, 12);
-          const newUser = await prisma.user.create({
-            data: {
+          const { user: newUser } = await DbService.user.createUser({
+            UserArgs: {
               email: credentials.email,
               password: hashedPassword,
-            }
+            } 
           });
           user = newUser;
         }
