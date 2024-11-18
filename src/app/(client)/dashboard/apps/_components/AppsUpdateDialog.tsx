@@ -17,6 +17,8 @@ import { toast } from "sonner";
 import { Plus, Minus } from "lucide-react";
 import { useEffect } from "react";
 import { AppType } from "@/lib/schemas/AppSchema";
+import { useSession } from "next-auth/react";
+import { Textarea } from "@/components/ui/textarea";
 
 interface AppDataField {
   key: string;
@@ -25,6 +27,7 @@ interface AppDataField {
 
 interface UpdateAppForm {
   name: string;
+  description: string;
   webhookUrl: string;
   dataFields: AppDataField[];
 }
@@ -41,6 +44,7 @@ export function AppsUpdateDialog({
   const queryClient = useQueryClient();
   const { register, handleSubmit, reset, watch, setValue } =
     useForm<UpdateAppForm>();
+  const { data: session } = useSession();
 
   const dataFields = watch("dataFields") || [];
 
@@ -48,6 +52,7 @@ export function AppsUpdateDialog({
     if (app) {
       reset({
         name: app.name,
+        description: app.description,
         webhookUrl: app.webhook?.url || "",
         dataFields: app.dataFields?.length
           ? app.dataFields.map((field) => ({
@@ -73,7 +78,7 @@ export function AppsUpdateDialog({
       const response = await fetch(`/api/apps/${app?.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, userEmail: session?.user?.email }),
       });
       if (!response.ok) throw new Error("Failed to update app");
       return response.json();
@@ -106,6 +111,16 @@ export function AppsUpdateDialog({
                 id="name"
                 {...register("name", { required: true })}
                 placeholder="My App"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                {...register("description", { required: true })}
+                placeholder="Describe what your app does..."
+                className="resize-none"
+                rows={3}
               />
             </div>
             <div className="space-y-2">

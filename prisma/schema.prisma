@@ -111,16 +111,17 @@ model WebhookEvent {
 }
 
 model App {
-  id         String         @id @default(cuid())
-  name       String
-  userId     String
-  user       User           @relation(fields: [userId], references: [id])
-  webhookId  String
-  webhook    Webhook        @relation(fields: [webhookId], references: [id])
-  dataFields AppDataField[]
-  createdAt  DateTime       @default(now())
-  updatedAt  DateTime       @updatedAt
-  deletedAt  DateTime?
+  id          String         @id @default(cuid())
+  name        String
+  description String         @default("")
+  userId      String
+  user        User           @relation(fields: [userId], references: [id])
+  webhookId   String
+  webhook     Webhook        @relation(fields: [webhookId], references: [id])
+  dataFields  AppDataField[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  deletedAt   DateTime?
 }
 
 model AppDataField {

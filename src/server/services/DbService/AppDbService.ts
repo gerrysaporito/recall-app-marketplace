@@ -57,6 +57,7 @@ export const AppDbService = {
     const { model } = args;
     return ReadAppSchema.parse({
       ...model,
+      userEmail: model.user.email ?? "",
       dataFields: model.dataFields.map((field) =>
         AppDataFieldSchema.parse(field)
       ),
@@ -99,7 +100,9 @@ export const AppDbService = {
       },
     });
 
+    console.log({ model: app });
     const result = this._parseApp({ model: app });
+    console.log({ result });
     return { app: result };
   },
 
@@ -107,7 +110,7 @@ export const AppDbService = {
     args: z.infer<typeof UpdateAppSchema>
   ): Promise<{ app: z.infer<typeof ReadAppSchema> }> {
     const { appId, appArgs } = UpdateAppSchema.parse(args);
-    const { dataFields, webhookUrl, ...appData } = appArgs;
+    const { dataFields, userEmail, webhookUrl, ...appData } = appArgs;
 
     // Update webhook if URL provided
     if (webhookUrl) {

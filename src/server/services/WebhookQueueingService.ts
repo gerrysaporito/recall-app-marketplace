@@ -45,7 +45,7 @@ class WebhookQueueingClass {
     });
 
     this.worker.on("completed", (job) => {
-      console.log(`Job ${job.id} completed`);
+      console.info(`Job ${job.id} completed`);
     });
 
     this.worker.on("failed", (job, err) => {
