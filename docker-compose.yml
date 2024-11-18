@@ -1,0 +1,16 @@
+version: "3.8"
+
+services:
+  redis:
+    container_name: recall-app-marketplace-redis
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 512M
+
+volumes:
+  recall-app-marketplace-redis-data:

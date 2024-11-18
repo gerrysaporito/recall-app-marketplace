@@ -51,8 +51,11 @@ model User {
   password      String?
   accounts      Account[]
   sessions      Session[]
+  webhooks      Webhook[]
+  webhookEvents WebhookEvent[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
 }
 
 model VerificationRequest {
@@ -64,4 +67,48 @@ model VerificationRequest {
   updatedAt  DateTime @updatedAt
 
   @@unique([identifier, token])
+}
+
+model Webhook {
+  id                 String   @id @default(cuid())
+  url                String // e.g., https://suisei.io/api/webhook
+
+  // Relations
+  userId    String
+  user      User           @relation(fields: [userId], references: [id])
+  events    WebhookEvent[]
+
+  // Timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime? // Soft deletes or block
+
+  @@map("webhooks")
+}
+
+model WebhookEvent {
+  id                 String    @id @default(cuid())
+  status             String
+  type               String // e.g., "account.created"
+  requestBody        String? // e.g., {"name": "Gerry"}
+  responseStatus     Int? // e.g., 200
+  responseBody       String? // e.g., {"message": "Account created"}
+  failureReason      String? // e.g., "Request failed"
+  retryCount         Int? // Tracks the number of retry attempts
+  lastRetryAt        DateTime? // Timestamp of last retry attempt
+  requestSentAt      DateTime?
+  responseReceivedAt DateTime?
+
+  // Relations
+  userId    String
+  user      User    @relation(fields: [userId], references: [id])
+  webhookId String
+  webhook   Webhook @relation(fields: [webhookId], references: [id])
+
+  // Timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime? // Soft deletes or block
+
+  @@map("webhook_events")
 }
