@@ -63,7 +63,7 @@ export const AppDbService = {
       },
       include: {
         user: true,
-        dataFields: true,
+        dataFields: { where: { deletedAt: null } },
       },
     });
 
@@ -77,48 +77,27 @@ export const AppDbService = {
     const { appId, appArgs } = UpdateAppSchema.parse(args);
     const { dataFields, ...appData } = appArgs;
 
-    // First update the app
     const app = await prisma.app.update({
       where: { id: appId },
-      data: appData,
+      data: {
+        ...appData,
+        ...(dataFields
+          ? {
+              dataFields: {
+                deleteMany: {},
+                create: dataFields.map((field) => ({
+                  ...field,
+                  id: `field_${cuid()}`,
+                })),
+              },
+            }
+          : {}),
+      },
       include: {
         user: true,
-        dataFields: true,
+        dataFields: { where: { deletedAt: null } },
       },
     });
-
-    // If dataFields are provided, update them
-    if (dataFields) {
-      // Delete existing fields
-      await prisma.appDataField.deleteMany({
-        where: { appId },
-      });
-
-      // Create new fields
-      await prisma.appDataField.createMany({
-        data: dataFields.map((field) => ({
-          ...field,
-          id: `field_${cuid()}`,
-          appId,
-        })),
-      });
-
-      // Fetch the updated app with all relations
-      const updatedApp = await prisma.app.findUnique({
-        where: { id: appId },
-        include: {
-          user: true,
-          dataFields: true,
-        },
-      });
-
-      if (!updatedApp) {
-        throw new Error("App not found after update");
-      }
-
-      const result = this._parseApp({ model: updatedApp });
-      return { app: result };
-    }
 
     const result = this._parseApp({ model: app });
     return { app: result };
@@ -129,10 +108,10 @@ export const AppDbService = {
   }): Promise<{ app: z.infer<typeof ReadAppSchema> | null }> {
     const { appId } = z.object({ appId: z.string() }).parse(args);
     const app = await prisma.app.findUnique({
-      where: { id: appId },
+      where: { id: appId, deletedAt: null },
       include: {
         user: true,
-        dataFields: true,
+        dataFields: { where: { deletedAt: null } },
       },
     });
 
@@ -149,7 +128,7 @@ export const AppDbService = {
   }): Promise<{ apps: z.infer<typeof ReadAppSchema>[] }> {
     const { userId } = z.object({ userId: z.string() }).parse(args);
     const apps = await prisma.app.findMany({
-      where: { userId },
+      where: { userId, deletedAt: null },
       include: {
         user: true,
         dataFields: true,
