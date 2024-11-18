@@ -38,23 +38,25 @@ const routes: NavItem[] = [
   {
     label: "Apps",
     icon: WebhookIcon,
+    href: "/dashboard/apps",
     path: "Apps",
     children: [
       {
         label: "My Apps",
-        href: "/dashboard/apps",
-        path: "My Applications",
+        href: "/dashboard/apps/me",
+        path: "My Apps",
       },
       {
         label: "All Apps",
         href: "/dashboard/apps/all",
-        path: "All Applications",
+        path: "All Apps",
       },
     ],
   },
   {
     label: "Bots",
     icon: BotIcon,
+    href: "/dashboard/bots",
     path: "Bots",
     children: [
       {
@@ -118,20 +120,18 @@ export default function DashboardLayout({
             <Breadcrumb>
               <BreadcrumbList>
                 {currentPath.map((item, index) => (
-                  <>
-                    <BreadcrumbItem key={item.path}>
-                      {index === currentPath.length - 1 ? (
-                        <BreadcrumbPage>{item.path}</BreadcrumbPage>
-                      ) : (
+                  <BreadcrumbItem key={`${item.path}-${index}`}>
+                    {index === currentPath.length - 1 ? (
+                      <BreadcrumbPage>{item.path}</BreadcrumbPage>
+                    ) : (
+                      <>
                         <BreadcrumbLink href={item.href || "#"}>
                           {item.path}
                         </BreadcrumbLink>
-                      )}
-                    </BreadcrumbItem>
-                    {index < currentPath.length - 1 && (
-                      <ChevronRight className="h-4 w-4 mx-2" />
+                        <ChevronRight className="h-4 w-4 mx-2" />
+                      </>
                     )}
-                  </>
+                  </BreadcrumbItem>
                 ))}
               </BreadcrumbList>
             </Breadcrumb>

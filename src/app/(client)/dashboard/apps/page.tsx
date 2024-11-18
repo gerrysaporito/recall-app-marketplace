@@ -1,10 +1,5 @@
-import { AppsContainer } from "./_components/AppsContainer";
+import { redirect } from "next/navigation";
 
 export default function AppsPage() {
-  return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold mb-6">Apps Management</h1>
-      <AppsContainer />
-    </div>
-  );
+  redirect("/dashboard/apps/me");
 }
