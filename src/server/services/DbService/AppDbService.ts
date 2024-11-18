@@ -1,18 +1,23 @@
-import type { App, AppDataField, User, Prisma } from "@prisma/client";
+import type { App, AppDataField, User, Prisma, Webhook } from "@prisma/client";
 import cuid from "cuid";
 import { z } from "zod";
 import { prisma } from "@/config/prisma";
 import { AppSchema } from "@/lib/schemas/AppSchema";
 import { AppDataFieldSchema } from "@/lib/schemas/AppDataFieldSchema";
+import { skip } from "@prisma/client/runtime/library";
 
 const WriteAppSchema = AppSchema.omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+  webhookId: true,
+  webhook: true,
 }).extend({
+  webhookUrl: z.string(),
   dataFields: z.array(
     AppDataFieldSchema.omit({
       id: true,
+      appId: true,
       createdAt: true,
       updatedAt: true,
     })
@@ -31,18 +36,23 @@ const UpdateAppSchema = z.object({
   appArgs: WriteAppSchema.partial(),
 });
 
-const SearchAppsSchema = z.object({
-  filters: z.object({
-    userId: z.string().optional(),
-    searchTerm: z.string().optional(),
-  }),
+export const AppsFiltersSchema = z.object({
+  userId: z.string().optional(),
+  userEmail: z.string().optional(),
+  name: z.string().optional(),
+});
+export type AppsFilterType = z.infer<typeof AppsFiltersSchema>;
+
+export const SearchAppsSchema = z.object({
+  filters: AppsFiltersSchema,
   page: z.number().min(1),
   itemsPerPage: z.number().min(1),
 });
+export type SearchAppsType = z.infer<typeof SearchAppsSchema>;
 
 export const AppDbService = {
   _parseApp: (args: {
-    model: App & { user: User; dataFields: AppDataField[] };
+    model: App & { user: User; webhook: Webhook; dataFields: AppDataField[] };
   }): z.infer<typeof ReadAppSchema> => {
     const { model } = args;
     return ReadAppSchema.parse({
@@ -57,12 +67,24 @@ export const AppDbService = {
     args: z.infer<typeof CreateAppSchema>
   ): Promise<{ app: z.infer<typeof ReadAppSchema> }> {
     const { appId, appArgs } = CreateAppSchema.parse(args);
-    const { dataFields, ...appData } = appArgs;
+    const { dataFields, webhookUrl, ...appData } = appArgs;
 
+    // Create webhook first
+    const webhook = await prisma.webhook.create({
+      data: {
+        id: `webhook_${cuid()}`,
+        url: webhookUrl,
+        userId: appData.userId,
+      },
+    });
+
+    // Then create app with webhook reference
     const app = await prisma.app.create({
       data: {
-        ...appData,
         id: appId ?? `app_${cuid()}`,
+        userId: appData.userId,
+        name: appData.name,
+        webhookId: webhook.id,
         dataFields: {
           create: dataFields.map((field) => ({
             ...field,
@@ -72,6 +94,7 @@ export const AppDbService = {
       },
       include: {
         user: true,
+        webhook: true,
         dataFields: { where: { deletedAt: null } },
       },
     });
@@ -84,7 +107,19 @@ export const AppDbService = {
     args: z.infer<typeof UpdateAppSchema>
   ): Promise<{ app: z.infer<typeof ReadAppSchema> }> {
     const { appId, appArgs } = UpdateAppSchema.parse(args);
-    const { dataFields, ...appData } = appArgs;
+    const { dataFields, webhookUrl, ...appData } = appArgs;
+
+    // Update webhook if URL provided
+    if (webhookUrl) {
+      const app = await prisma.app.findUnique({
+        where: { id: appId },
+        select: { webhookId: true },
+      });
+      await prisma.webhook.update({
+        where: { id: app!.webhookId },
+        data: { url: webhookUrl },
+      });
+    }
 
     const app = await prisma.app.update({
       where: { id: appId },
@@ -104,6 +139,7 @@ export const AppDbService = {
       },
       include: {
         user: true,
+        webhook: true,
         dataFields: { where: { deletedAt: null } },
       },
     });
@@ -120,6 +156,7 @@ export const AppDbService = {
       where: { id: appId, deletedAt: null },
       include: {
         user: true,
+        webhook: true,
         dataFields: { where: { deletedAt: null } },
       },
     });
@@ -140,6 +177,7 @@ export const AppDbService = {
       where: { userId, deletedAt: null },
       include: {
         user: true,
+        webhook: true,
         dataFields: { where: { deletedAt: null } },
       },
       orderBy: { createdAt: "desc" },
@@ -157,20 +195,27 @@ export const AppDbService = {
 
     const where: Prisma.AppWhereInput = {
       ...(filters.userId && { userId: filters.userId }),
+      ...(filters.userEmail || filters.name
+        ? {
+            OR: [
+              !!filters.userEmail
+                ? { user: { email: { contains: filters.userEmail } } }
+                : undefined,
+              !!filters.name ? { name: { contains: filters.name } } : undefined,
+            ].filter((v) => !!v),
+          }
+        : {}),
       deletedAt: null,
-      ...(filters.searchTerm && {
-        OR: [
-          { id: { equals: filters.searchTerm } },
-          { name: { contains: filters.searchTerm } },
-        ],
-      }),
     };
+
+    console.log({ where });
 
     const [apps, totalCount] = await Promise.all([
       prisma.app.findMany({
         where,
         include: {
           user: true,
+          webhook: true,
           dataFields: { where: { deletedAt: null } },
         },
         skip: (page - 1) * itemsPerPage,
