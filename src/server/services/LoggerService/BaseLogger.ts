@@ -52,7 +52,7 @@ export class BaseLogger {
     });
 
     // Log as JSON for easy parsing by log management tools
-    console.log(JSON.stringify(logEntry));
+    console.info(JSON.stringify(logEntry));
   }
 
   private formatError(error: Error): object {

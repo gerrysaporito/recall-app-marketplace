@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { signIn } from "next-auth/react";
+import { signIn, getSession } from "next-auth/react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/hooks/use-toast";
+import { useRouter } from "next/navigation";
 
 type FormData = {
   email: string;
@@ -15,6 +16,7 @@ type FormData = {
 };
 
 export const AuthForm = () => {
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [isRegister, setIsRegister] = useState(false);
   const { register, handleSubmit } = useForm<FormData>();
@@ -34,7 +36,6 @@ export const AuthForm = () => {
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
     try {
-      // Login
       const result = await signIn("credentials", {
         email: data.email,
         password: data.password,
@@ -47,14 +48,18 @@ export const AuthForm = () => {
       }
 
       if (result?.ok) {
-        toast({
-          title: isRegister ? "Account created" : "Welcome back",
-          description: isRegister
-            ? "Successfully signed in with your new account"
-            : "Successfully signed in to your account",
-        });
+        const session = await getSession();
 
-        window.location.href = "/dashboard";
+        if (session) {
+          toast({
+            title: isRegister ? "Account created" : "Welcome back",
+            description: isRegister
+              ? "Successfully signed in with your new account"
+              : "Successfully signed in to your account",
+          });
+
+          router.replace("/dashboard");
+        }
       }
     } catch (error: any) {
       handleAuthError(error.message);

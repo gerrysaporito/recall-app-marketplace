@@ -13,10 +13,12 @@ import {
 } from "@/components/ui/popover";
 import { AppsFilterType } from "@/server/services/DbService/AppDbService";
 
-export function AppsContainer() {
+export const AppsContainer: React.FC<{
+  filters?: AppsFilterType;
+}> = ({ filters: rawFilters }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [filters, setFilters] = useState<AppsFilterType>({});
+  const [filters, setFilters] = useState<AppsFilterType>(rawFilters ?? {});
 
   const handleFilterChange = (key: string, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -53,7 +55,7 @@ export function AppsContainer() {
       <AppsCreateDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} />
     </div>
   );
-}
+};
 
 const SearchFilter: React.FC<{
   filters: any;

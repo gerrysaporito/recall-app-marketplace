@@ -12,6 +12,9 @@ const NextAuthSecret = env.ENCRYPTION_KEY_SECRET;
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   secret: NextAuthSecret,
+  session: {
+    strategy: "jwt",
+  },
   providers: [
     GitHubProvider({
       clientId: env.GITHUB_CLIENT_ID,
@@ -64,15 +67,17 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    session: async ({ session }) => {
-      if (session?.user?.email) {
-        const { user: dbUser } = await DbService.user.getUserByEmail({
-          email: session.user.email,
-        });
-        if (dbUser) {
-          session.user.email = dbUser.email;
-          session.user.id = dbUser.id;
-        }
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.email = user.email;
+      }
+      return token;
+    },
+    session: async ({ session, token }) => {
+      if (session?.user) {
+        session.user.id = token.id as string;
+        session.user.email = token.email;
       }
       return session;
     },

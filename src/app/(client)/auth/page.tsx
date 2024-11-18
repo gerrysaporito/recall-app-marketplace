@@ -1,12 +1,12 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/config/nextAuth";
-import { AuthCard } from './_components/AuthCard';
+import { AuthCard } from "./_components/AuthCard";
 
 export default async function AuthPage() {
   const session = await getServerSession(authOptions);
 
-  if (session) {
+  if (session?.user?.email) {
     redirect("/dashboard");
   }
 
@@ -15,4 +15,4 @@ export default async function AuthPage() {
       <AuthCard />
     </main>
   );
-} 
+}
