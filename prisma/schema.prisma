@@ -10,8 +10,9 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Authentication and User Management Models
 model Account {
-  id                String   @id @default(cuid())
+  id                String  @id @default(cuid())
   userId            String
   provider          String
   type              String
@@ -23,9 +24,13 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  user              User     @relation(fields: [userId], references: [id])
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id])
 
   @@unique([provider, providerAccountId])
 }
@@ -36,26 +41,35 @@ model Session {
   expires      DateTime
   sessionToken String   @unique
   accessToken  String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  user         User     @relation(fields: [userId], references: [id])
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id])
 }
 
 model User {
-  id            String         @id @default(cuid())
+  id            String    @id @default(cuid())
   name          String?
-  email         String?        @unique
+  email         String?   @unique
   emailVerified DateTime?
   image         String?
   password      String?
+
+  // Timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  // Relations
   accounts      Account[]
   sessions      Session[]
   webhooks      Webhook[]
   webhookEvents WebhookEvent[]
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  deletedAt     DateTime?
   App           App[]
+  Bot           Bot[]
 }
 
 model VerificationRequest {
@@ -63,26 +77,29 @@ model VerificationRequest {
   identifier String
   token      String   @unique
   expires    DateTime
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([identifier, token])
 }
 
+// Webhook System Models
 model Webhook {
   id  String @id @default(cuid())
   url String // e.g., https://suisei.io/api/webhook
-
-  // Relations
-  userId String
-  user   User           @relation(fields: [userId], references: [id])
-  events WebhookEvent[]
 
   // Timestamps
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime? // Soft deletes or block
-  App       App[]
+
+  // Relations
+  userId String
+  user   User           @relation(fields: [userId], references: [id])
+  events WebhookEvent[]
+  App    App[]
 }
 
 model WebhookEvent {
@@ -98,38 +115,112 @@ model WebhookEvent {
   requestSentAt      DateTime?
   responseReceivedAt DateTime?
 
-  // Relations
-  userId    String
-  user      User    @relation(fields: [userId], references: [id])
-  webhookId String
-  webhook   Webhook @relation(fields: [webhookId], references: [id])
-
   // Timestamps
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime? // Soft deletes or block
+
+  // Relations
+  userId    String
+  webhookId String
+  user      User    @relation(fields: [userId], references: [id])
+  webhook   Webhook @relation(fields: [webhookId], references: [id])
 }
 
+// App and Bot System Models
 model App {
-  id          String         @id @default(cuid())
+  id          String @id @default(cuid())
   name        String
-  description String         @default("")
-  userId      String
-  user        User           @relation(fields: [userId], references: [id])
-  webhookId   String
-  webhook     Webhook        @relation(fields: [webhookId], references: [id])
-  dataFields  AppDataField[]
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  deletedAt   DateTime?
+  description String @default("")
+
+  // Timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  // Relations
+  userId     String
+  webhookId  String
+  botId      String?
+  user       User           @relation(fields: [userId], references: [id])
+  webhook    Webhook        @relation(fields: [webhookId], references: [id])
+  Bot        Bot?           @relation(fields: [botId], references: [id])
+  dataFields AppDataField[]
+  BotApp     BotApp[]
 }
 
 model AppDataField {
-  id        String    @id @default(cuid())
-  key       String
-  value     String?
-  appId     String
-  app       App       @relation(fields: [appId], references: [id])
+  id    String  @id @default(cuid())
+  key   String
+  value String?
+
+  // Timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  // Relations
+  appId       String
+  app         App           @relation(fields: [appId], references: [id])
+  BotAppField BotAppField[]
+}
+
+model Bot {
+  id          String @id @default(cuid())
+  name        String
+  meetingUrl  String
+  recallBotId String
+
+  // Timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  // Relations
+  userId String
+  user   User     @relation(fields: [userId], references: [id])
+  apps   App[]
+  BotApp BotApp[]
+}
+
+model BotApp {
+  id String @id @default(cuid())
+
+  // Timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  // Relations
+  botId        String
+  appId        String
+  bot          Bot           @relation(fields: [botId], references: [id])
+  app          App           @relation(fields: [appId], references: [id])
+  botAppFields BotAppField[]
+}
+
+model BotAppField {
+  id    String  @id @default(cuid())
+  value String?
+
+  // Timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  // Relations
+  botAppId   String
+  appFieldId String
+  botApp     BotApp       @relation(fields: [botAppId], references: [id])
+  appField   AppDataField @relation(fields: [appFieldId], references: [id])
+}
+
+model BotTriggerEvent {
+  id          String @id @default(cuid())
+  recallBotId String
+  args        String
+
+  // Timestamps
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?

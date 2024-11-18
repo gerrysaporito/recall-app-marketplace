@@ -6,3 +6,6 @@ export const AppDataFieldSchema = BaseEntitySchema.extend({
   value: z.string().optional(),
   appId: z.string(),
 });
+
+export type AppDataType = z.infer<typeof AppDataFieldSchema>;
+export type AppDataFieldInputType = z.input<typeof AppDataFieldSchema>;

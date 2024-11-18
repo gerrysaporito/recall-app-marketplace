@@ -6,3 +6,6 @@ export const BaseEntitySchema = z.object({
   updatedAt: z.date(),
   deletedAt: z.date().nullish(),
 });
+
+export type BaseEntityType = z.infer<typeof BaseEntitySchema>;
+export type BaseEntityInputType = z.input<typeof BaseEntitySchema>;
