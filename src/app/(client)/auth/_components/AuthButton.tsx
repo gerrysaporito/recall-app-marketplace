@@ -25,7 +25,7 @@ export const AuthButton = () => {
           description: "Failed to sign in with GitHub. Please try again.",
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Authentication failed",

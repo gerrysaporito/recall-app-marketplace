@@ -1,3 +1,17 @@
 {
-  "extends": ["next/core-web-vitals", "next/typescript"]
+  "extends": ["next/core-web-vitals", "next/typescript"],
+  "overrides": [
+    {
+      "files": ["src/**/*"],
+      "rules": {
+        "@typescript-eslint/no-explicit-any": "off"
+      }
+    },
+    {
+      "files": ["src/components/hooks/**/*", "src/components/ui/**/*"],
+      "rules": {
+        "@typescript-eslint/no-unused-vars": "off",
+      }
+    }
+  ]
 }

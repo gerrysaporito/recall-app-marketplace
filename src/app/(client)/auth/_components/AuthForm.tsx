@@ -58,7 +58,7 @@ export const AuthForm = () => {
         // Updated redirect to dashboard
         window.location.href = '/dashboard';
       }
-    } catch (error) {
+    } catch (error: any) {
       handleAuthError(error.message);
     } finally {
       setIsLoading(false);
