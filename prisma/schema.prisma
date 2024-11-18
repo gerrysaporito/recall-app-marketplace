@@ -68,8 +68,8 @@ model User {
   sessions      Session[]
   webhooks      Webhook[]
   webhookEvents WebhookEvent[]
-  App           App[]
-  Bot           Bot[]
+  apps          App[]
+  bots          Bot[]
 }
 
 model VerificationRequest {
@@ -99,7 +99,7 @@ model Webhook {
   userId String
   user   User           @relation(fields: [userId], references: [id])
   events WebhookEvent[]
-  App    App[]
+  app    App[]
 }
 
 model WebhookEvent {
@@ -144,9 +144,9 @@ model App {
   botId      String?
   user       User           @relation(fields: [userId], references: [id])
   webhook    Webhook        @relation(fields: [webhookId], references: [id])
-  Bot        Bot?           @relation(fields: [botId], references: [id])
+  bot        Bot?           @relation(fields: [botId], references: [id])
   dataFields AppDataField[]
-  BotApp     BotApp[]
+  botApp     BotApp[]
 }
 
 model AppDataField {
@@ -162,7 +162,7 @@ model AppDataField {
   // Relations
   appId       String
   app         App           @relation(fields: [appId], references: [id])
-  BotAppField BotAppField[]
+  botAppField BotAppField[]
 }
 
 model Bot {
@@ -177,10 +177,10 @@ model Bot {
   deletedAt DateTime?
 
   // Relations
-  userId String
-  user   User     @relation(fields: [userId], references: [id])
-  apps   App[]
-  BotApp BotApp[]
+  userId  String
+  user    User     @relation(fields: [userId], references: [id])
+  apps    App[]
+  botApps BotApp[]
 }
 
 model BotApp {

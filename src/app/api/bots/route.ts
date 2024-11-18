@@ -3,7 +3,7 @@ import { authOptions } from "@/config/nextAuth";
 import { NextRequest } from "next/server";
 import { DbService } from "@/server/services/DbService";
 
-// Create new app
+// Create new bot
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -12,17 +12,17 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { app } = await DbService.app.createApp({
-      appArgs: {
+    const { bot } = await DbService.bot.createBot({
+      botArgs: {
         ...body,
         userId: session.user.id,
         userEmail: session.user.email,
       },
     });
 
-    return Response.json({ app }, { status: 201 });
+    return Response.json({ bot }, { status: 201 });
   } catch (error) {
-    console.error("Error creating app", error);
+    console.error("Error creating bot", error);
     return Response.json({ error: "Invalid request" }, { status: 400 });
   }
 }

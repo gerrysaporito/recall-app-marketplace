@@ -1,6 +1,5 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/config/nextAuth";
-import { AppDbService } from "@/server/services/DbService/AppDbService";
 import { NextRequest } from "next/server";
 import { DbService } from "@/server/services/DbService";
 
@@ -55,7 +54,7 @@ export async function PATCH(request: NextRequest) {
 
     const { app } = await DbService.app.updateApp({
       appId,
-      appArgs: body,
+      appArgs: { ...body, userId: session.user.id,  userEmail: session.user.email },
     });
 
     return Response.json({ app });

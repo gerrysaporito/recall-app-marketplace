@@ -78,7 +78,7 @@ export function AppsUpdateDialog({
       const response = await fetch(`/api/apps/${app?.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, userEmail: session?.user?.email }),
+        body: JSON.stringify({ ...data }),
       });
       if (!response.ok) throw new Error("Failed to update app");
       return response.json();

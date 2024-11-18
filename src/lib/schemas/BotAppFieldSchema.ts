@@ -2,7 +2,8 @@ import { z } from "zod";
 import { BaseEntitySchema } from "./BaseEntitySchema";
 
 export const BotAppFieldSchema = BaseEntitySchema.extend({
-  value: z.string().optional(),
+  key: z.string(),
+  value: z.string().nullable(),
   botAppId: z.string(),
   appFieldId: z.string(),
 });
