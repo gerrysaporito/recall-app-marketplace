@@ -64,9 +64,15 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    session: async ({ session, user }) => {
-      if (session?.user) {
-        session.user = user;
+    session: async ({ session }) => {
+      if (session?.user?.email) {
+        const { user: dbUser } = await DbService.user.getUserByEmail({
+          email: session.user.email,
+        });
+        if (dbUser) {
+          session.user.email = dbUser.email;
+          session.user.id = dbUser.id;
+        }
       }
       return session;
     },

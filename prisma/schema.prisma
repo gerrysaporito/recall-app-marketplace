@@ -10,9 +10,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
 model Account {
-  id                String    @id @default(cuid())
+  id                String   @id @default(cuid())
   userId            String
   provider          String
   type              String
@@ -24,9 +23,9 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  user              User      @relation(fields: [userId], references: [id])
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id])
 
   @@unique([provider, providerAccountId])
 }
@@ -36,16 +35,16 @@ model Session {
   userId       String
   expires      DateTime
   sessionToken String   @unique
-  accessToken  String?  
+  accessToken  String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   user         User     @relation(fields: [userId], references: [id])
 }
 
 model User {
-  id            String    @id @default(cuid())
+  id            String         @id @default(cuid())
   name          String?
-  email         String?   @unique
+  email         String?        @unique
   emailVerified DateTime?
   image         String?
   password      String?
@@ -53,9 +52,10 @@ model User {
   sessions      Session[]
   webhooks      Webhook[]
   webhookEvents WebhookEvent[]
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
   deletedAt     DateTime?
+  App           App[]
 }
 
 model VerificationRequest {
@@ -70,20 +70,19 @@ model VerificationRequest {
 }
 
 model Webhook {
-  id                 String   @id @default(cuid())
-  url                String // e.g., https://suisei.io/api/webhook
+  id  String @id @default(cuid())
+  url String // e.g., https://suisei.io/api/webhook
 
   // Relations
-  userId    String
-  user      User           @relation(fields: [userId], references: [id])
-  events    WebhookEvent[]
+  userId String
+  user   User           @relation(fields: [userId], references: [id])
+  events WebhookEvent[]
 
   // Timestamps
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime? // Soft deletes or block
-
-  @@map("webhooks")
+  App       App[]
 }
 
 model WebhookEvent {
@@ -109,6 +108,28 @@ model WebhookEvent {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime? // Soft deletes or block
+}
 
-  @@map("webhook_events")
+model App {
+  id         String         @id @default(cuid())
+  name       String
+  userId     String
+  user       User           @relation(fields: [userId], references: [id])
+  webhookId  String
+  webhook    Webhook        @relation(fields: [webhookId], references: [id])
+  dataFields AppDataField[]
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  deletedAt  DateTime?
+}
+
+model AppDataField {
+  id        String    @id @default(cuid())
+  key       String
+  value     String?
+  appId     String
+  app       App       @relation(fields: [appId], references: [id])
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 }

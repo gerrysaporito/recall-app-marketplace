@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { signIn } from 'next-auth/react';
-import { useForm } from 'react-hook-form';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useToast } from '@/components/hooks/use-toast';
+import { useState } from "react";
+import { signIn } from "next-auth/react";
+import { useForm } from "react-hook-form";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/components/hooks/use-toast";
 
 type FormData = {
   email: string;
@@ -21,10 +21,9 @@ export const AuthForm = () => {
   const { toast } = useToast();
 
   const handleAuthError = (error: string) => {
-    const errorMessage = error === 'Invalid credentials' 
-      ? 'Invalid email or password'
-      : error;
-      
+    const errorMessage =
+      error === "Invalid credentials" ? "Invalid email or password" : error;
+
     toast({
       variant: "destructive",
       title: "Authentication failed",
@@ -36,27 +35,26 @@ export const AuthForm = () => {
     setIsLoading(true);
     try {
       // Login
-      const result = await signIn('credentials', {
+      const result = await signIn("credentials", {
         email: data.email,
         password: data.password,
         redirect: false,
       });
 
       if (result?.error) {
-        const errorMessage = result.error.replace(/%20/g, ' ');
+        const errorMessage = result.error.replace(/%20/g, " ");
         throw new Error(errorMessage);
       }
 
       if (result?.ok) {
         toast({
           title: isRegister ? "Account created" : "Welcome back",
-          description: isRegister 
+          description: isRegister
             ? "Successfully signed in with your new account"
             : "Successfully signed in to your account",
         });
-        
-        // Updated redirect to dashboard
-        window.location.href = '/dashboard';
+
+        window.location.href = "/dashboard";
       }
     } catch (error: any) {
       handleAuthError(error.message);
@@ -70,34 +68,34 @@ export const AuthForm = () => {
       {isRegister && (
         <div className="space-y-2">
           <Label htmlFor="name">Name</Label>
-          <Input {...register('name')} id="name" placeholder="John Doe" />
+          <Input {...register("name")} id="name" placeholder="John Doe" />
         </div>
       )}
       <div className="space-y-2">
         <Label htmlFor="email">Email</Label>
-        <Input 
-          {...register('email')} 
-          id="email" 
-          type="email" 
+        <Input
+          {...register("email")}
+          id="email"
+          type="email"
           placeholder="you@example.com"
-          required 
+          required
         />
       </div>
       <div className="space-y-2">
         <Label htmlFor="password">Password</Label>
-        <Input 
-          {...register('password')} 
-          id="password" 
-          type="password" 
+        <Input
+          {...register("password")}
+          id="password"
+          type="password"
           placeholder="••••••••"
-          required 
+          required
         />
       </div>
       <Button type="submit" className="w-full" disabled={isLoading}>
         {isLoading ? (
           <>Loading...</>
         ) : (
-          <>{isRegister ? 'Sign Up' : 'Sign In'}</>
+          <>{isRegister ? "Sign Up" : "Sign In"}</>
         )}
       </Button>
       <Button
@@ -107,8 +105,8 @@ export const AuthForm = () => {
         disabled={isLoading}
         onClick={() => setIsRegister(!isRegister)}
       >
-        {isRegister ? 'Already have an account?' : "Don't have an account?"}
+        {isRegister ? "Already have an account?" : "Don't have an account?"}
       </Button>
     </form>
   );
-}; 
+};

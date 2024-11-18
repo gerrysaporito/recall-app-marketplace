@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import { Inter } from 'next/font/google';
-import { AuthProvider } from '@/components/providers/AuthProvider';
-import { cn } from '@/components/lib/utils';
+import { Inter } from "next/font/google";
+import { AuthProvider } from "@/components/providers/AuthProvider";
+import { cn } from "@/components/lib/utils";
 import "./globals.css";
+import { ReactQueryProvider } from "@/components/providers/ReactQueryProvider";
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -18,14 +19,16 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={cn(
-        'min-h-screen bg-background font-sans antialiased',
-        inter.className
-      )}>
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+      <body
+        className={cn(
+          "min-h-screen bg-background font-sans antialiased",
+          inter.className
+        )}
+      >
+        <ReactQueryProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </ReactQueryProvider>
       </body>
     </html>
   );
-} 
+}

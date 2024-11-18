@@ -1,10 +1,10 @@
-import type { User, Webhook, WebhookEvent } from '@prisma/client';
-import cuid from 'cuid';
-import { z } from 'zod';
-import { prisma } from '@/config/prisma';
-import { WebhookEventSchema } from '@/lib/schemas/WebhookEventSchema';
-import { WebhookEventType } from '@/lib/constants/WebhookEventType';
-import { WebhookEventStatus } from '@/lib/constants/WebhookEventStatus';
+import type { User, Webhook, WebhookEvent } from "@prisma/client";
+import cuid from "cuid";
+import { z } from "zod";
+import { prisma } from "@/config/prisma";
+import { WebhookEventSchema } from "@/lib/schemas/WebhookEventSchema";
+import { WebhookEventType } from "@/lib/constants/WebhookEventType";
+import { WebhookEventStatus } from "@/lib/constants/WebhookEventStatus";
 
 const WriteWebhookEventSchema = WebhookEventSchema.omit({
   id: true,
@@ -37,7 +37,7 @@ export const WebhookEventDbService = {
   },
 
   createWebhookEvent: async function (
-    args: z.infer<typeof CreateWebhookEventSchema>,
+    args: z.infer<typeof CreateWebhookEventSchema>
   ): Promise<{ webhookEvent: z.infer<typeof ReadWebhookEventSchema> }> {
     const { webhookEventId, webhookEventArgs } =
       CreateWebhookEventSchema.parse(args);
@@ -53,7 +53,7 @@ export const WebhookEventDbService = {
   },
 
   updateWebhookEvent: async function (
-    args: { webhookEventId: string } & z.infer<typeof UpdateWebhookEventSchema>,
+    args: { webhookEventId: string } & z.infer<typeof UpdateWebhookEventSchema>
   ): Promise<{ webhookEvent: z.infer<typeof ReadWebhookEventSchema> }> {
     const { webhookEventId, webhookEventArgs } =
       UpdateWebhookEventSchema.parse(args);
@@ -75,7 +75,7 @@ export const WebhookEventDbService = {
       .object({ webhookEventId: z.string() })
       .parse(args);
     const webhookEvent = await prisma.webhookEvent.findUnique({
-      where: { id: webhookEventId },
+      where: { id: webhookEventId, deletedAt: null },
       include: { webhook: true, user: true },
     });
     if (!webhookEvent) {
@@ -90,12 +90,12 @@ export const WebhookEventDbService = {
   }): Promise<{ webhookEvents: z.infer<typeof ReadWebhookEventSchema>[] }> {
     const { webhookId } = z.object({ webhookId: z.string() }).parse(args);
     const webhookEvents = await prisma.webhookEvent.findMany({
-      where: { webhookId: webhookId },
+      where: { webhookId, deletedAt: null },
       include: { webhook: true, user: true },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
     const result = webhookEvents.map((webhookEvent) =>
-      this._parseWebhookEvent({ model: webhookEvent }),
+      this._parseWebhookEvent({ model: webhookEvent })
     );
     return { webhookEvents: result };
   },
