@@ -4,7 +4,6 @@ import { z } from "zod";
 import { redis } from "@/config/redis";
 import { DbService } from "@/server/services/DbService";
 import { QueueLogger } from "@/server/services/LoggerService/QueueLogger";
-import { BaseLogger } from "@/server/services/LoggerService/BaseLogger";
 import { WebhookEventType } from "@/lib/constants/WebhookEventType";
 import { WebhookEventStatus } from "@/lib/constants/WebhookEventStatus";
 
@@ -14,17 +13,17 @@ const EnqueueJobHandlerArgsSchema = z.object({
   type: z.nativeEnum(WebhookEventType),
   userId: z.string(),
   data: z.any(),
-  logger: z.instanceof(BaseLogger),
+  logger: z.any().refine((data) => !!data, "Logger is required"),
 });
 
-export class WebhookQueueingClass {
+class WebhookQueueingClass {
   queue: Queue<z.infer<typeof EnqueueJobHandlerArgsSchema>> | undefined;
   worker: Worker<z.infer<typeof EnqueueJobHandlerArgsSchema>> | undefined;
   backoffAttempts = 5;
   private initialized = false;
 
   constructor() {
-    this.initialize();
+    void this.initialize().catch(console.error);
   }
 
   async initialize() {
@@ -43,6 +42,14 @@ export class WebhookQueueingClass {
         max: 1,
         duration: 1000, // Milliseconds
       },
+    });
+
+    this.worker.on("completed", (job) => {
+      console.log(`Job ${job.id} completed`);
+    });
+
+    this.worker.on("failed", (job, err) => {
+      console.error(`Job ${job?.id} failed:`, err);
     });
 
     this.initialized = true;
@@ -136,8 +143,17 @@ export class WebhookQueueingClass {
       console.error("Failed to parse job data", result.error);
       return { webhookEvent: null };
     }
-    const { webhookId, webhookEventId, userId, type, data, logger } =
-      result.data;
+    const {
+      webhookId,
+      webhookEventId,
+      userId,
+      type,
+      data,
+      logger: rawLogger,
+    } = result.data;
+    const logger = new QueueLogger({
+      ...rawLogger.context,
+    });
 
     logger.info({
       message: "Starting to process webhook job",

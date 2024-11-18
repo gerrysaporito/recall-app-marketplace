@@ -1,8 +1,8 @@
-import type { User } from '@prisma/client';
-import { z } from 'zod';
-import { prisma } from '@/config/prisma';
-import { UserSchema } from '@/lib/schemas/UserSchema';
-import cuid from 'cuid';
+import type { User } from "@prisma/client";
+import { z } from "zod";
+import { prisma } from "@/config/prisma";
+import { UserSchema } from "@/lib/schemas/UserSchema";
+import cuid from "cuid";
 
 /**
  * Service method arg schemas
@@ -16,13 +16,13 @@ export const WriteUserSchema = UserSchema.omit({
 export const ReadUserSchema = UserSchema;
 
 export const CreateUserSchema = z.object({
-  UserId: z.string().optional(),
-  UserArgs: WriteUserSchema.partial().extend({ email: z.string().email() }),
+  userId: z.string().optional(),
+  userArgs: WriteUserSchema.partial().extend({ email: z.string().email() }),
 });
 
 const UpdateUserSchema = z.object({
-  UserId: z.string(),
-  UserArgs: WriteUserSchema.partial(),
+  userId: z.string(),
+  userArgs: WriteUserSchema.partial(),
 });
 
 /**
@@ -37,13 +37,13 @@ export const UserDbService = {
     return result;
   },
   createUser: async function (
-    args: z.infer<typeof CreateUserSchema>,
+    args: z.infer<typeof CreateUserSchema>
   ): Promise<{ user: z.infer<typeof ReadUserSchema> }> {
-    const { UserId, UserArgs } = CreateUserSchema.parse(args);
+    const { userId, userArgs } = CreateUserSchema.parse(args);
     const User = await prisma.user.create({
       data: {
-        ...UserArgs,
-        id: UserId ?? `user_${cuid()}`,
+        ...userArgs,
+        id: userId ?? `user_${cuid()}`,
       },
       include: {},
     });
@@ -52,12 +52,12 @@ export const UserDbService = {
   },
 
   updateUser: async function (
-    args: z.infer<typeof UpdateUserSchema>,
+    args: z.infer<typeof UpdateUserSchema>
   ): Promise<{ user: z.infer<typeof ReadUserSchema> }> {
-    const { UserId, UserArgs } = UpdateUserSchema.parse(args);
+    const { userId, userArgs } = UpdateUserSchema.parse(args);
     const User = await prisma.user.update({
-      where: { id: UserId },
-      data: { ...UserArgs },
+      where: { id: userId },
+      data: { ...userArgs },
       include: {},
     });
     const result = this._parseDbToSchema({ model: User });
@@ -65,11 +65,11 @@ export const UserDbService = {
   },
 
   getUserById: async function (args: {
-    UserId: string;
+    userId: string;
   }): Promise<{ user: z.infer<typeof ReadUserSchema> | null }> {
-    const { UserId } = z.object({ UserId: z.string() }).parse(args);
+    const { userId } = z.object({ userId: z.string() }).parse(args);
     const User = await prisma.user.findUnique({
-      where: { id: UserId, deletedAt: null },
+      where: { id: userId, deletedAt: null },
       include: {},
     });
     if (!User) {

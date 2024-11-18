@@ -1,13 +1,13 @@
 /* eslint-disable no-var */
 import type { PrismaClient } from "@prisma/client";
-import type { WebhookQueueingClass } from "~/server/services/QueueingService/WebhookQueueingClass";
+import type { WebhookQueueingService } from "~/server/services/WebhookQueueingService";
 import type { redis } from "@/config/redis";
 
 declare global {
   var prisma: PrismaClient;
   var redis: typeof redis | undefined;
   var queues: {
-    webhook: WebhookQueueingClass;
+    webhook: typeof WebhookQueueingService;
   };
   var initializedServices: {
     nodeJsRuntime: boolean;
@@ -18,7 +18,7 @@ declare global {
       prisma: PrismaClient | undefined;
       redis: typeof redis | undefined;
       queues: {
-        webhook: WebhookQueueingClass;
+        webhook: typeof WebhookQueueingService;
       };
       initializedServices: {
         nodeJsRuntime: boolean;
