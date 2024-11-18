@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/config/nextAuth";
 import { AppDbService } from "@/server/services/DbService/AppDbService";
 import { NextRequest } from "next/server";
+import { DbService } from "@/server/services/DbService";
 
 // Get specific app
 export async function GET(request: NextRequest) {
@@ -15,7 +16,7 @@ export async function GET(request: NextRequest) {
     if (!appId) {
       return new Response("App ID is required", { status: 400 });
     }
-    const { app } = await AppDbService.getAppById({ appId });
+    const { app } = await DbService.app.getAppById({ appId });
     if (!app) {
       return new Response("Not found", { status: 404 });
     }
@@ -39,17 +40,20 @@ export async function PATCH(request: NextRequest) {
     if (!appId) {
       return new Response("App ID is required", { status: 400 });
     }
-    const { app: existingApp } = await AppDbService.getAppById({ appId });
+    const { app: existingApp } = await DbService.app.getAppById({ appId });
+    const { user: appOwner } = await DbService.user.getUserById({
+      userId: existingApp?.userId ?? "",
+    });
     if (!existingApp) {
       return new Response("Not found", { status: 404 });
     }
-    if (existingApp.userId !== session.user?.email) {
+    if (appOwner?.email !== session.user?.email) {
       return new Response("Forbidden", { status: 403 });
     }
 
     const body = await request.json();
 
-    const { app } = await AppDbService.updateApp({
+    const { app } = await DbService.app.updateApp({
       appId,
       appArgs: body,
     });
@@ -73,17 +77,20 @@ export async function DELETE(request: NextRequest) {
     if (!appId) {
       return new Response("App ID is required", { status: 400 });
     }
-    const { app } = await AppDbService.getAppById({
+    const { app } = await DbService.app.getAppById({
       appId,
+    });
+    const { user: appOwner } = await DbService.user.getUserById({
+      userId: app?.userId ?? "",
     });
     if (!app) {
       return new Response("Not found", { status: 404 });
     }
-    if (app.userId !== session.user.id) {
+    if (appOwner?.email !== session.user?.email) {
       return new Response("Forbidden", { status: 403 });
     }
 
-    await AppDbService.updateApp({
+    await DbService.app.updateApp({
       appId,
       appArgs: {
         deletedAt: new Date(),

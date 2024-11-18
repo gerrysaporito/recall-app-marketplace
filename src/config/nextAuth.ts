@@ -70,7 +70,7 @@ export const authOptions: NextAuthOptions = {
           email: session.user.email,
         });
         if (dbUser) {
-          session.user = session.user;
+          session.user.email = dbUser.email;
           session.user.id = dbUser.id;
         }
       }
