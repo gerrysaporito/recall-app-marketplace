@@ -10,5 +10,5 @@ export const BotSchema = BaseEntitySchema.extend({
   botTemplate: BotTemplateSchema,
 });
 
-export type BotTemplateType = z.infer<typeof BotSchema>;
-export type BotTemplateInputType = z.input<typeof BotSchema>;
+export type BotType = z.infer<typeof BotSchema>;
+export type BotInputType = z.input<typeof BotSchema>;

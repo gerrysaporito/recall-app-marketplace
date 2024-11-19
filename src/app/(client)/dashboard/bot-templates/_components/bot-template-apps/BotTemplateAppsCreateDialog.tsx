@@ -203,7 +203,7 @@ export function BotTemplateAppsCreateDialog({
                   (field) => field.type === "editable"
                 ).length === 0 && (
                   <div className="text-sm text-muted-foreground">
-                    This app has no editable fields
+                    Nothing to set up, just add the app and get started!
                   </div>
                 )}
               </div>

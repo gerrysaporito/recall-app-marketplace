@@ -156,7 +156,7 @@ export function BotTemplateAppsViewDialog({
                 </Table>
               ) : (
                 <div className="text-sm text-muted-foreground">
-                  This app has no editable fields
+                  This app has no fields to configure here
                 </div>
               )}
             </CardContent>

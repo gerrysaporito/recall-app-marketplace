@@ -17,11 +17,6 @@ const CreateBotTriggerEventSchema = z.object({
   botTriggerEventArgs: WriteBotTriggerEventSchema,
 });
 
-const UpdateBotTriggerEventSchema = z.object({
-  botTriggerEventId: z.string(),
-  botTriggerEventArgs: WriteBotTriggerEventSchema.partial(),
-});
-
 export const BotTriggerEventDbService = {
   _parseModel: (args: {
     model: BotTriggerEvent;
@@ -29,6 +24,7 @@ export const BotTriggerEventDbService = {
     const { model } = args;
     return ReadBotTriggerEventSchema.parse({
       ...model,
+      data: JSON.parse(model.data),
     } satisfies z.input<typeof ReadBotTriggerEventSchema>);
   },
 
@@ -41,9 +37,28 @@ export const BotTriggerEventDbService = {
     const botTriggerEvent = await prisma.botTriggerEvent.create({
       data: {
         ...botTriggerEventArgs,
+        data: JSON.stringify(botTriggerEventArgs.data),
         id: botTriggerEventId ?? `botTriggerEvent_${cuid()}`,
       },
     });
+
+    const result = this._parseModel({ model: botTriggerEvent });
+    return { botTriggerEvent: result };
+  },
+
+  getBotTriggerEventById: async function (args: {
+    botTriggerEventId: string;
+  }): Promise<{
+    botTriggerEvent: z.infer<typeof ReadBotTriggerEventSchema> | null;
+  }> {
+    const { botTriggerEventId } = args;
+
+    const botTriggerEvent = await prisma.botTriggerEvent.findUnique({
+      where: { id: botTriggerEventId },
+    });
+    if (!botTriggerEvent) {
+      return { botTriggerEvent: null };
+    }
 
     const result = this._parseModel({ model: botTriggerEvent });
     return { botTriggerEvent: result };

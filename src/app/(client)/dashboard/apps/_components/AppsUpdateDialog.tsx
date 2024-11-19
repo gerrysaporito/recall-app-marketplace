@@ -82,9 +82,12 @@ export function AppsUpdateDialog({
           ...data,
           dataFields: data.dataFields.map((field) => ({
             ...field,
+            value: field.value?.trim().includes("{{")
+              ? "{{command}}"
+              : field.value?.trim(),
             type: !field.value
               ? "editable"
-              : field.value?.includes("{{")
+              : field.value.trim().includes("{{")
               ? "command"
               : "constant",
           })),
@@ -164,9 +167,10 @@ export function AppsUpdateDialog({
                           </li>
                           <li>
                             <span className="font-medium">
-                              {`{{TriggerWord}}`}:
+                              "{`{{command}}`}":
                             </span>{" "}
-                            User must say trigger word + value in real-time
+                            User must say trigger word (key name) + value in
+                            real-time
                           </li>
                           <li>
                             <span className="font-medium">"constant":</span>{" "}
@@ -201,7 +205,7 @@ export function AppsUpdateDialog({
                       </div>
                       <div className="space-y-1 flex-1">
                         <Input
-                          placeholder="Value (leave empty, {{TriggerWord}}, or constant)"
+                          placeholder="Value (leave empty, {{command}}, or constant)"
                           {...register(`dataFields.${index}.value`)}
                         />
                         <div className="text-xs text-muted-foreground px-2">

@@ -70,6 +70,14 @@ export const AppDbService = {
     const { appId, appArgs } = CreateAppSchema.parse(args);
     const { dataFields, webhookUrl, userEmail, ...appData } = appArgs;
 
+    // First verify the user exists
+    const user = await prisma.user.findUnique({
+      where: { id: appData.userId },
+    });
+    if (!user) {
+      throw new Error(`User with id ${appData.userId} not found`);
+    }
+
     // Create webhook first
     const webhook = await prisma.webhook.create({
       data: {

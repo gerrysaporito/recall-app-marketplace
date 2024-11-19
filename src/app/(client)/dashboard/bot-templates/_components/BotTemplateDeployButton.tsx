@@ -6,6 +6,7 @@ import {
   BotTemplateDeployDialog,
   DeploymentData,
 } from "./BotTemplateDeployDialog";
+import { useToast } from "@/components/hooks/use-toast";
 
 interface BotTemplateDeployButtonProps {
   botTemplate: BotTemplateType;
@@ -16,6 +17,7 @@ export function BotTemplateDeployButton({
 }: BotTemplateDeployButtonProps) {
   const [isDeploying, setIsDeploying] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { toast } = useToast();
 
   const handleDeploy = async (deployData: DeploymentData) => {
     setIsDeploying(true);
@@ -37,8 +39,21 @@ export function BotTemplateDeployButton({
 
       const data = await response.json();
       console.log("Deployment response:", data);
+      
+      toast({
+        title: "Bot Deployed Successfully",
+        description: `${deployData.botName} has been deployed and will join the meeting shortly.`,
+        variant: "default",
+      });
+      
+      setIsDialogOpen(false);
     } catch (error) {
       console.error("Failed to deploy bot:", error);
+      toast({
+        title: "Deployment Failed",
+        description: "There was an error deploying your bot. Please try again.",
+        variant: "destructive",
+      });
       throw error;
     } finally {
       setIsDeploying(false);

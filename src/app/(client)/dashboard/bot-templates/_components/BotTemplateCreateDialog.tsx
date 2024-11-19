@@ -47,6 +47,7 @@ export function BotTemplateCreateDialog({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bots"] });
+      queryClient.invalidateQueries({ queryKey: ["bot-templates"] });
       onOpenChange(false);
       reset();
       toast.success("Bot created successfully");

@@ -14,7 +14,7 @@ export const WebhookEventSchema = BaseEntitySchema.extend({
   responseBody: z.any().nullish(),
   requestSentAt: z.date().nullish(),
   responseReceivedAt: z.date().nullish(),
-  retryCount: z.number().int().nullish(),
+  retryCount: z.number().nullish(),
   lastRetryAt: z.date().nullish(),
   failureReason: z.string().nullish(),
 });
