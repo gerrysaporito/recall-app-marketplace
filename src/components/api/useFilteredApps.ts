@@ -23,14 +23,7 @@ export function useFilteredApps(
   });
 
   return useQuery({
-    queryKey: [
-      "apps",
-      searchTerm,
-      JSON.stringify(filters),
-      page,
-      itemsPerPage,
-      session?.user?.id,
-    ],
+    queryKey: ["apps", session?.user?.id],
     queryFn: async () => {
       const body = SearchAppsSchema.parse({
         filters: {

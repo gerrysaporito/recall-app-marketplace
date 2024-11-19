@@ -13,24 +13,49 @@ export async function PATCH(request: NextRequest) {
 
     const pathParts = new URL(request.url).pathname.split("/");
     const botId = pathParts[3];
-    const appId = pathParts[5];
+    const botAppId = pathParts[5];
 
-    if (!botId || !appId) {
-      return new Response("Bot ID and App ID are required", { status: 400 });
+    if (!botId || !botAppId) {
+      return new Response("Bot ID and Bot App ID are required", {
+        status: 400,
+      });
     }
 
+    // Verify bot ownership
     const { bot } = await DbService.bot.getBotById({ botId });
     if (!bot || bot.userId !== session.user.id) {
       return new Response("Forbidden", { status: 403 });
     }
 
+    // Verify bot app exists and belongs to this bot
+    const existingBotApp = bot.botApps.find((app) => app.id === botAppId);
+    if (!existingBotApp) {
+      return new Response("Bot app not found", { status: 404 });
+    }
+
     const body = await request.json();
-    const { botApp } = await DbService.botApp.updateBotApp({
-      botAppId: `${botId}_${appId}`,
-      botAppArgs: body,
+
+    // Prepare data fields with defaults from app schema
+    const dataFields = existingBotApp.botAppDataFields.map((field) => ({
+      id: field.id,
+      value:
+        body.botAppDataFields?.find((f: any) => f.key === field.key)?.value ??
+        null,
+    }));
+
+    // Upsert all data fields
+    for (const field of dataFields) {
+      await DbService.botAppDataField.updateBotAppDataField({
+        botAppDataFieldId: field.id,
+        botAppDataFieldArgs: field,
+      });
+    }
+
+    const { botApp: updatedBotApp } = await DbService.botApp.getBotAppById({
+      botAppId,
     });
 
-    return Response.json({ botApp });
+    return Response.json({ botApp: updatedBotApp });
   } catch (error) {
     console.error("Error updating bot app", error);
     return Response.json(
@@ -50,19 +75,29 @@ export async function DELETE(request: NextRequest) {
 
     const pathParts = new URL(request.url).pathname.split("/");
     const botId = pathParts[3];
-    const appId = pathParts[5];
+    const botAppId = pathParts[5];
 
-    if (!botId || !appId) {
-      return new Response("Bot ID and App ID are required", { status: 400 });
+    if (!botId || !botAppId) {
+      return new Response("Bot ID and Bot App ID are required", {
+        status: 400,
+      });
     }
 
+    // Verify bot ownership
     const { bot } = await DbService.bot.getBotById({ botId });
     if (!bot || bot.userId !== session.user.id) {
       return new Response("Forbidden", { status: 403 });
     }
 
+    // Verify bot app exists and belongs to this bot
+    const existingBotApp = bot.botApps.find((app) => app.id === botAppId);
+    if (!existingBotApp) {
+      return new Response("Bot app not found", { status: 404 });
+    }
+
+    // Soft delete the bot app
     await DbService.botApp.updateBotApp({
-      botAppId: `${botId}_${appId}`,
+      botAppId,
       botAppArgs: {
         deletedAt: new Date(),
       },

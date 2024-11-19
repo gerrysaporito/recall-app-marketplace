@@ -1,11 +1,13 @@
 import { z } from "zod";
 import { BaseEntitySchema } from "./BaseEntitySchema";
-import { BotAppFieldSchema } from "./BotAppFieldSchema";
+import { BotAppDataFieldSchema } from "./BotAppDataFieldSchema";
+import { AppSchema } from "./AppSchema";
 
 export const BotAppSchema = BaseEntitySchema.extend({
   botId: z.string(),
   appId: z.string(),
-  botAppFields: BotAppFieldSchema.array(),
+  botAppDataFields: BotAppDataFieldSchema.array(),
+  app: AppSchema,
 });
 
 export type BotAppType = z.infer<typeof BotAppSchema>;

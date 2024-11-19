@@ -23,14 +23,7 @@ export function useFilteredBots(
   });
 
   return useQuery({
-    queryKey: [
-      "bots",
-      searchTerm,
-      JSON.stringify(filters),
-      page,
-      itemsPerPage,
-      session?.user?.id,
-    ],
+    queryKey: ["bots", session?.user?.id],
     queryFn: async () => {
       const body = SearchBotsSchema.parse({
         filters: {

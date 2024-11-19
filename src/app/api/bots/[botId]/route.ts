@@ -11,10 +11,11 @@ export async function GET(request: NextRequest) {
       return new Response("Unauthorized", { status: 401 });
     }
 
-    const botId = new URL(request.url).pathname.split("/").pop();
+    const botId = new URL(request.url).pathname.split("/")[3];
     if (!botId) {
       return new Response("Bot ID is required", { status: 400 });
     }
+
     const { bot } = await DbService.bot.getBotById({ botId });
     if (!bot) {
       return new Response("Not found", { status: 404 });
@@ -31,11 +32,11 @@ export async function GET(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
+    if (!session?.user?.id || !session?.user?.email) {
       return new Response("Unauthorized", { status: 401 });
     }
 
-    const botId = new URL(request.url).pathname.split("/").pop();
+    const botId = new URL(request.url).pathname.split("/")[3];
     if (!botId) {
       return new Response("Bot ID is required", { status: 400 });
     }
@@ -49,6 +50,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
+
     const { bot } = await DbService.bot.updateBot({
       botId,
       botArgs: body,
@@ -69,7 +71,7 @@ export async function DELETE(request: NextRequest) {
       return new Response("Unauthorized", { status: 401 });
     }
 
-    const botId = new URL(request.url).pathname.split("/").pop();
+    const botId = new URL(request.url).pathname.split("/")[3];
     if (!botId) {
       return new Response("Bot ID is required", { status: 400 });
     }

@@ -7,11 +7,12 @@ import { DbService } from "@/server/services/DbService";
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    if (!session?.user?.id || !session?.user?.email) {
       return new Response("Unauthorized", { status: 401 });
     }
 
     const body = await request.json();
+
     const { bot } = await DbService.bot.createBot({
       botArgs: {
         ...body,
@@ -23,6 +24,6 @@ export async function POST(request: NextRequest) {
     return Response.json({ bot }, { status: 201 });
   } catch (error) {
     console.error("Error creating bot", error);
-    return Response.json({ error: "Invalid request" }, { status: 400 });
+    return Response.json({ error: "Failed to create bot" }, { status: 500 });
   }
 }

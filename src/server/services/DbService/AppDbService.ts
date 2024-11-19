@@ -51,7 +51,7 @@ export const SearchAppsSchema = z.object({
 export type SearchAppsType = z.infer<typeof SearchAppsSchema>;
 
 export const AppDbService = {
-  _parseApp: (args: {
+  _parseModel: (args: {
     model: App & { user: User; webhook: Webhook; dataFields: AppDataField[] };
   }): z.infer<typeof ReadAppSchema> => {
     const { model } = args;
@@ -68,7 +68,7 @@ export const AppDbService = {
     args: z.infer<typeof CreateAppSchema>
   ): Promise<{ app: z.infer<typeof ReadAppSchema> }> {
     const { appId, appArgs } = CreateAppSchema.parse(args);
-    const { dataFields, webhookUrl, ...appData } = appArgs;
+    const { dataFields, webhookUrl, userEmail, ...appData } = appArgs;
 
     // Create webhook first
     const webhook = await prisma.webhook.create({
@@ -83,8 +83,7 @@ export const AppDbService = {
     const app = await prisma.app.create({
       data: {
         id: appId ?? `app_${cuid()}`,
-        userId: appData.userId,
-        name: appData.name,
+        ...appData,
         webhookId: webhook.id,
         dataFields: {
           create: dataFields.map((field) => ({
@@ -100,9 +99,7 @@ export const AppDbService = {
       },
     });
 
-    console.log({ model: app });
-    const result = this._parseApp({ model: app });
-    console.log({ result });
+    const result = this._parseModel({ model: app });
     return { app: result };
   },
 
@@ -147,7 +144,7 @@ export const AppDbService = {
       },
     });
 
-    const result = this._parseApp({ model: app });
+    const result = this._parseModel({ model: app });
     return { app: result };
   },
 
@@ -168,7 +165,7 @@ export const AppDbService = {
       return { app: null };
     }
 
-    const result = this._parseApp({ model: app });
+    const result = this._parseModel({ model: app });
     return { app: result };
   },
 
@@ -186,7 +183,7 @@ export const AppDbService = {
       orderBy: { createdAt: "desc" },
     });
 
-    const result = apps.map((app) => this._parseApp({ model: app }));
+    const result = apps.map((app) => this._parseModel({ model: app }));
     return { apps: result };
   },
 
@@ -226,7 +223,7 @@ export const AppDbService = {
       prisma.app.count({ where }),
     ]);
 
-    const results = apps.map((app) => this._parseApp({ model: app }));
+    const results = apps.map((app) => this._parseModel({ model: app }));
     return { apps: results, totalCount };
   },
 };

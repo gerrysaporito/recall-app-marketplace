@@ -6,7 +6,7 @@ import { DbService } from "@/server/services/DbService";
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
+    if (!session?.user?.id) {
       return new Response("Unauthorized", { status: 401 });
     }
 
@@ -18,6 +18,10 @@ export async function GET(request: NextRequest) {
     const { bot } = await DbService.bot.getBotById({ botId });
     if (!bot) {
       return new Response("Bot not found", { status: 404 });
+    }
+
+    if (bot.userId !== session.user.id) {
+      return new Response("Forbidden", { status: 403 });
     }
 
     return Response.json({ botApps: bot.botApps });

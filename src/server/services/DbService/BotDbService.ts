@@ -4,13 +4,15 @@ import type {
   App,
   Prisma,
   BotApp,
-  BotAppField,
+  BotAppDataField,
+  Webhook,
   AppDataField,
 } from "@prisma/client";
 import cuid from "cuid";
 import { z } from "zod";
 import { prisma } from "@/config/prisma";
 import { BotSchema } from "@/lib/schemas/BotSchema";
+import page from "@/app/(client)/page";
 
 const WriteBotSchema = BotSchema.omit({
   id: true,
@@ -45,12 +47,37 @@ export const SearchBotsSchema = z.object({
 export type SearchBotsType = z.infer<typeof SearchBotsSchema>;
 
 export const BotDbService = {
-  _parseBot: (args: {
+  include: {
+    user: true,
+    botApps: {
+      where: {
+        deletedAt: null,
+      },
+      include: {
+        app: {
+          include: {
+            dataFields: true,
+            webhook: true,
+          },
+        },
+        botAppDataFields: {
+          include: {
+            appDataField: true,
+          },
+        },
+      },
+    },
+  } as const,
+
+  _parseModel: (args: {
     model: Bot & {
       user: User;
-      apps: App[];
       botApps: (BotApp & {
-        botAppFields: (BotAppField & { appField: AppDataField })[];
+        app: App & {
+          dataFields: AppDataField[];
+          webhook: Webhook;
+        };
+        botAppDataFields: (BotAppDataField & { appDataField: AppDataField })[];
       })[];
     };
   }): z.infer<typeof ReadBotSchema> => {
@@ -60,10 +87,18 @@ export const BotDbService = {
       userEmail: model.user.email ?? "",
       botApps: model.botApps.map((botApp) => ({
         ...botApp,
-        botAppFields: botApp.botAppFields.map((botAppField) => ({
+        app: {
+          ...botApp.app,
+          userEmail: model.user.email ?? "",
+          dataFields: botApp.app.dataFields.map((field) => ({
+            ...field,
+            type: field.type as any,
+          })),
+        },
+        botAppDataFields: botApp.botAppDataFields.map((botAppField) => ({
           ...botAppField,
-          key: botAppField.appField.key,
-          appField: botAppField.appField,
+          appDataFieldId: botAppField.appDataField.id,
+          key: botAppField.appDataField.key,
         })),
       })),
     } satisfies z.input<typeof ReadBotSchema>);
@@ -80,14 +115,10 @@ export const BotDbService = {
         id: botId ?? `bot_${cuid()}`,
         ...restArgs,
       },
-      include: {
-        user: true,
-        apps: true,
-        botApps: { include: { botAppFields: { include: { appField: true } } } },
-      },
+      include: this.include,
     });
 
-    const result = this._parseBot({ model: bot });
+    const result = this._parseModel({ model: bot });
     return { bot: result };
   },
 
@@ -100,14 +131,10 @@ export const BotDbService = {
     const bot = await prisma.bot.update({
       where: { id: botId },
       data: restArgs,
-      include: {
-        user: true,
-        apps: true,
-        botApps: { include: { botAppFields: { include: { appField: true } } } },
-      },
+      include: this.include,
     });
 
-    const result = this._parseBot({ model: bot });
+    const result = this._parseModel({ model: bot });
     return { bot: result };
   },
 
@@ -117,18 +144,14 @@ export const BotDbService = {
     const { botId } = z.object({ botId: z.string() }).parse(args);
     const bot = await prisma.bot.findUnique({
       where: { id: botId, deletedAt: null },
-      include: {
-        user: true,
-        apps: true,
-        botApps: { include: { botAppFields: { include: { appField: true } } } },
-      },
+      include: this.include,
     });
 
     if (!bot) {
       return { bot: null };
     }
 
-    const result = this._parseBot({ model: bot });
+    const result = this._parseModel({ model: bot });
     return { bot: result };
   },
 
@@ -147,13 +170,7 @@ export const BotDbService = {
     const [bots, totalCount] = await Promise.all([
       prisma.bot.findMany({
         where,
-        include: {
-          user: true,
-          apps: true,
-          botApps: {
-            include: { botAppFields: { include: { appField: true } } },
-          },
-        },
+        include: this.include,
         skip: (page - 1) * itemsPerPage,
         take: itemsPerPage,
         orderBy: { createdAt: "desc" },
@@ -161,7 +178,7 @@ export const BotDbService = {
       prisma.bot.count({ where }),
     ]);
 
-    const results = bots.map((bot) => this._parseBot({ model: bot }));
+    const results = bots.map((bot) => this._parseModel({ model: bot }));
     return { bots: results, totalCount };
   },
 
@@ -172,14 +189,10 @@ export const BotDbService = {
 
     const bots = await prisma.bot.findMany({
       where: { recallBotId, deletedAt: null },
-      include: {
-        user: true,
-        apps: true,
-        botApps: { include: { botAppFields: { include: { appField: true } } } },
-      },
+      include: this.include,
     });
 
-    const results = bots.map((bot) => this._parseBot({ model: bot }));
+    const results = bots.map((bot) => this._parseModel({ model: bot }));
     return { bots: results };
   },
 };

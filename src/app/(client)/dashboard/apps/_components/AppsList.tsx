@@ -43,6 +43,14 @@ export function AppsList({
 
   if (isLoading) return <div>Loading...</div>;
 
+  if (!data?.apps.length) {
+    return (
+      <div className="text-center text-xs text-muted-foreground py-10">
+        No apps found. Create one to get started
+      </div>
+    );
+  }
+
   return (
     <>
       <Table>

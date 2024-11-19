@@ -27,7 +27,11 @@ const UpdateWebhookSchema = z.object({
 export const WebhookDbService = {
   webhookEvent: WebhookEventDbService,
 
-  _parseWebhook: (args: {
+  include: {
+    user: true,
+  } as const,
+
+  _parseModel: (args: {
     model: Webhook & { user: User };
   }): z.infer<typeof ReadWebhookSchema> => {
     const { model } = args;
@@ -45,9 +49,9 @@ export const WebhookDbService = {
         ...webhookArgs,
         id: webhookId ?? `webhook_${cuid()}`,
       },
-      include: { user: true },
+      include: this.include,
     });
-    const result = this._parseWebhook({ model: webhook });
+    const result = this._parseModel({ model: webhook });
     return { webhook: result };
   },
 
@@ -58,9 +62,9 @@ export const WebhookDbService = {
     const webhook = await prisma.webhook.update({
       where: { id: webhookId },
       data: webhookArgs,
-      include: { user: true },
+      include: this.include,
     });
-    const result = this._parseWebhook({ model: webhook });
+    const result = this._parseModel({ model: webhook });
     return { webhook: result };
   },
 
@@ -70,12 +74,12 @@ export const WebhookDbService = {
     const { webhookId } = z.object({ webhookId: z.string() }).parse(args);
     const webhook = await prisma.webhook.findUnique({
       where: { id: webhookId, deletedAt: null },
-      include: { user: true },
+      include: this.include,
     });
     if (!webhook) {
       return { webhook: null };
     }
-    const result = this._parseWebhook({ model: webhook });
+    const result = this._parseModel({ model: webhook });
     return { webhook: result };
   },
 
@@ -85,11 +89,11 @@ export const WebhookDbService = {
     const { userId } = z.object({ userId: z.string() }).parse(args);
     const webhooks = await prisma.webhook.findMany({
       where: { userId, deletedAt: null },
-      include: { user: true },
+      include: this.include,
       orderBy: { createdAt: "desc" },
     });
     const result = webhooks.map((webhook) =>
-      this._parseWebhook({ model: webhook })
+      this._parseModel({ model: webhook })
     );
     return { webhooks: result };
   },

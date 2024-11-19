@@ -2,29 +2,22 @@ import type {
   BotApp,
   Bot,
   App,
-  BotAppField,
   AppDataField,
-  Prisma,
+  Webhook,
+  User,
+  BotAppDataField,
 } from "@prisma/client";
 import cuid from "cuid";
 import { z } from "zod";
 import { prisma } from "@/config/prisma";
 import { BotAppSchema } from "@/lib/schemas/BotAppSchema";
-import { BotAppFieldSchema } from "@/lib/schemas/BotAppFieldSchema";
 
 const WriteBotAppSchema = BotAppSchema.omit({
   id: true,
   createdAt: true,
   updatedAt: true,
-}).extend({
-  botAppFields: z.array(
-    BotAppFieldSchema.omit({
-      id: true,
-      botAppId: true,
-      createdAt: true,
-      updatedAt: true,
-    })
-  ),
+  app: true,
+  botAppDataFields: true,
 });
 
 const ReadBotAppSchema = BotAppSchema;
@@ -39,27 +32,50 @@ const UpdateBotAppSchema = z.object({
   botAppArgs: WriteBotAppSchema.partial(),
 });
 
-export const BotAppsFiltersSchema = z.object({
-  botId: z.string().optional(),
-  appId: z.string().optional(),
-});
-export type BotAppsFilterType = z.infer<typeof BotAppsFiltersSchema>;
-
 export const BotAppDbService = {
-  _parseBotApp: (args: {
+  include: {
+    bot: true,
+    app: {
+      include: {
+        user: true,
+        dataFields: true,
+        webhook: true,
+      },
+    },
+    botAppDataFields: {
+      include: {
+        appDataField: true,
+      },
+    },
+  } as const,
+
+  parseModel: (args: {
     model: BotApp & {
       bot: Bot;
-      app: App;
-      botAppFields: (BotAppField & { appField: AppDataField })[];
+      app: App & {
+        user: User;
+        dataFields: AppDataField[];
+        webhook: Webhook;
+      };
+      botAppDataFields: (BotAppDataField & { appDataField: AppDataField })[];
     };
   }): z.infer<typeof ReadBotAppSchema> => {
     const { model } = args;
     return ReadBotAppSchema.parse({
       ...model,
-      botAppFields: model.botAppFields.map((botAppField) => ({
+      app: {
+        ...model.app,
+        userEmail: model.app.user.email ?? "",
+        dataFields: model.app.dataFields.map((field) => ({
+          ...field,
+          type: field.type as any,
+        })),
+      },
+      botAppDataFields: model.botAppDataFields.map((botAppField) => ({
         ...botAppField,
-        key: botAppField.appField.key,
-        appField: botAppField.appField,
+        type: botAppField.type as any,
+        key: botAppField.appDataField.key,
+        appDataFieldId: botAppField.appDataField.id,
       })),
     } satisfies z.input<typeof ReadBotAppSchema>);
   },
@@ -68,27 +84,20 @@ export const BotAppDbService = {
     args: z.infer<typeof CreateBotAppSchema>
   ): Promise<{ botApp: z.infer<typeof ReadBotAppSchema> }> {
     const { botAppId, botAppArgs } = CreateBotAppSchema.parse(args);
-    const { botAppFields, ...botAppData } = botAppArgs;
 
-    const botApp = await prisma.botApp.create({
+    const createdBotApp = await prisma.botApp.create({
       data: {
-        id: botAppId ?? `botapp_${cuid()}`,
-        ...botAppData,
-        botAppFields: {
-          create: botAppFields.map((field) => ({
-            ...field,
-            id: `botappfield_${cuid()}`,
-          })),
-        },
+        ...botAppArgs,
+        id: botAppId ?? `botApp_${cuid()}`,
       },
-      include: {
-        bot: true,
-        app: true,
-        botAppFields: { include: { appField: true } },
-      },
+      include: this.include,
     });
 
-    const result = this._parseBotApp({ model: botApp });
+    if (!createdBotApp) {
+      throw new Error("Failed to create bot app");
+    }
+
+    const result = this.parseModel({ model: createdBotApp });
     return { botApp: result };
   },
 
@@ -96,33 +105,22 @@ export const BotAppDbService = {
     args: z.infer<typeof UpdateBotAppSchema>
   ): Promise<{ botApp: z.infer<typeof ReadBotAppSchema> }> {
     const { botAppId, botAppArgs } = UpdateBotAppSchema.parse(args);
-    const { botAppFields, ...botAppData } = botAppArgs;
 
-    const botApp = await prisma.botApp.update({
+    await prisma.botApp.update({
       where: { id: botAppId },
-      data: {
-        ...botAppData,
-        ...(botAppFields
-          ? {
-              botAppFields: {
-                deleteMany: {},
-                create: botAppFields.map((field) => ({
-                  ...field,
-                  id: `botappfield_${cuid()}`,
-                })),
-              },
-            }
-          : {}),
-      },
-      include: {
-        bot: true,
-        app: true,
-        botAppFields: { include: { appField: true } },
-      },
+      data: botAppArgs,
     });
 
-    const result = this._parseBotApp({ model: botApp });
-    return { botApp: result };
+    const botApp = await prisma.botApp.findUnique({
+      where: { id: botAppId },
+      include: this.include,
+    });
+
+    if (!botApp) {
+      throw new Error("Failed to fetch updated bot app");
+    }
+
+    return { botApp: this.parseModel({ model: botApp }) };
   },
 
   getBotAppById: async function (args: {
@@ -132,18 +130,14 @@ export const BotAppDbService = {
 
     const botApp = await prisma.botApp.findUnique({
       where: { id: botAppId, deletedAt: null },
-      include: {
-        bot: true,
-        app: true,
-        botAppFields: { include: { appField: true } },
-      },
+      include: this.include,
     });
 
     if (!botApp) {
       return { botApp: null };
     }
 
-    const result = this._parseBotApp({ model: botApp });
+    const result = this.parseModel({ model: botApp });
     return { botApp: result };
   },
 };

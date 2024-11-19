@@ -23,6 +23,7 @@ import { useFilteredBots } from "@/components/api/useFilteredBots";
 import { BotType } from "@/lib/schemas/BotSchema";
 import { useSession } from "next-auth/react";
 import { BotsViewDialog } from "./BotsViewDialog";
+import { BotAppsList } from "./bot-apps/BotAppsList";
 
 export function BotsList({
   searchTerm,
@@ -40,6 +41,14 @@ export function BotsList({
   const { data, isLoading } = useFilteredBots(searchTerm, filters);
 
   if (isLoading) return <div>Loading...</div>;
+
+  if (!data?.bots.length) {
+    return (
+      <div className="text-center text-xs text-muted-foreground py-10">
+        No bots found. Create one to get started
+      </div>
+    );
+  }
 
   return (
     <>
@@ -97,6 +106,13 @@ export function BotsList({
                 </DropdownMenu>
               </div>
             </CardHeader>
+            <CardContent>
+              <BotAppsList
+                botId={bot.id}
+                botApps={bot.botApps}
+                isOwner={session?.user?.id === bot.userId}
+              />
+            </CardContent>
           </Card>
         ))}
       </div>
