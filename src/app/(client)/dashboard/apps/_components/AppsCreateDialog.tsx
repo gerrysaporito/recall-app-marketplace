@@ -62,7 +62,17 @@ export function AppsCreateDialog({
       const response = await fetch("/api/apps", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, userEmail: session?.user?.email }),
+        body: JSON.stringify({
+          ...data,
+          dataFields: data.dataFields.map((field) => ({
+            ...field,
+            type: !field.value
+              ? "editable"
+              : field.value?.includes("{{")
+              ? "command"
+              : "constant",
+          })),
+        }),
       });
       if (!response.ok) throw new Error("Failed to create app");
       return response.json();

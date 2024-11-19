@@ -1,13 +1,12 @@
 "use client";
 
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,71 +16,50 @@ import {
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal, Pencil, Trash, Eye } from "lucide-react";
 import { useState } from "react";
-import { AppsUpdateDialog } from "./AppsUpdateDialog";
-import { AppsDeleteDialog } from "./AppsDeleteDialog";
-import { AppsFilterType } from "@/server/services/DbService/AppDbService";
-import { useFilteredApps } from "../../../../../components/api/useFilteredApps";
-import { AppType } from "@/lib/schemas/AppSchema";
+import { BotTemplateUpdateDialog } from "./BotTemplateUpdateDialog";
+import { BotTemplateDeleteDialog } from "./BotTemplateDeleteDialog";
+import { BotTemplatesFilterType } from "@/server/services/DbService/BotTemplateDbService";
+import { useFilteredBotTemplates } from "@/components/api/useFilteredBotTemplates";
+import { BotTemplateType } from "@/lib/schemas/BotTemplateSchema";
 import { useSession } from "next-auth/react";
-import { Badge } from "@/components/ui/badge";
-import { AppsViewDialog } from "./AppsViewDialog";
+import { BotTemplateViewDialog } from "./BotTemplateViewDialog";
+import { BotTemplateAppsList } from "./bot-template-apps/BotTemplateAppsList";
 
-export function AppsList({
+export function BotTemplateList({
   searchTerm,
   filters,
 }: {
   searchTerm: string;
-  filters: AppsFilterType;
+  filters: BotTemplatesFilterType;
 }) {
   const { data: session } = useSession();
-  const [selectedApp, setSelectedApp] = useState<AppType | null>(null);
+  const [selectedBot, setSelectedBot] = useState<BotTemplateType | null>(null);
   const [isUpdateOpen, setIsUpdateOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
 
-  const { data, isLoading } = useFilteredApps(searchTerm, filters);
+  const { data, isLoading } = useFilteredBotTemplates(searchTerm, filters);
 
   if (isLoading) return <div>Loading...</div>;
 
-  if (!data?.apps.length) {
+  if (!data?.botTemplates.length) {
     return (
       <div className="text-center text-xs text-muted-foreground py-10">
-        No apps found. Create one to get started
+        No bots found. Create one to get started
       </div>
     );
   }
 
   return (
     <>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Author</TableHead>
-            <TableHead>Created At</TableHead>
-            <TableHead className="w-[70px]"></TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {data?.apps.map((app: AppType) => (
-            <TableRow key={app.id}>
-              <TableCell>{app.name}</TableCell>
-              <TableCell>
-                {session?.user?.email === app.userEmail ? (
-                  <Badge className="ml-2">me</Badge>
-                ) : (
-                  <Badge variant="secondary" className="ml-2">
-                    {app.userEmail.toLowerCase()}
-                  </Badge>
-                )}
-              </TableCell>
-              <TableCell>
-                {new Date(app.createdAt).toLocaleString(undefined, {
-                  dateStyle: "medium",
-                  timeStyle: "short",
-                })}
-              </TableCell>
-              <TableCell>
+      <div className="grid grid-cols-1 gap-4">
+        {data?.botTemplates.map((botTemplate) => (
+          <Card key={botTemplate.id}>
+            <CardHeader>
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle>{botTemplate.name}</CardTitle>
+                </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="h-8 w-8 p-0">
@@ -91,18 +69,18 @@ export function AppsList({
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem
                       onClick={() => {
-                        setSelectedApp(app);
+                        setSelectedBot(botTemplate);
                         setIsViewOpen(true);
                       }}
                     >
                       <Eye className="mr-2 h-4 w-4" />
                       View
                     </DropdownMenuItem>
-                    {session?.user?.email === app.userEmail && (
+                    {session?.user?.email === botTemplate.userEmail && (
                       <>
                         <DropdownMenuItem
                           onClick={() => {
-                            setSelectedApp(app);
+                            setSelectedBot(botTemplate);
                             setIsUpdateOpen(true);
                           }}
                         >
@@ -111,7 +89,7 @@ export function AppsList({
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => {
-                            setSelectedApp(app);
+                            setSelectedBot(botTemplate);
                             setIsDeleteOpen(true);
                           }}
                           className="text-red-600"
@@ -123,26 +101,33 @@ export function AppsList({
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <BotTemplateAppsList
+                botTemplateId={botTemplate.id}
+                botTemplateApps={botTemplate.botTemplateApps}
+                isOwner={session?.user?.id === botTemplate.userId}
+              />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
-      <AppsViewDialog
+      <BotTemplateViewDialog
         open={isViewOpen}
         onOpenChange={setIsViewOpen}
-        app={selectedApp}
+        botTemplate={selectedBot}
       />
-      <AppsUpdateDialog
+      <BotTemplateUpdateDialog
         open={isUpdateOpen}
         onOpenChange={setIsUpdateOpen}
-        app={selectedApp}
+        botTemplate={selectedBot}
       />
-      <AppsDeleteDialog
+      <BotTemplateDeleteDialog
         open={isDeleteOpen}
         onOpenChange={setIsDeleteOpen}
-        app={selectedApp}
+        botTemplate={selectedBot}
       />
     </>
   );

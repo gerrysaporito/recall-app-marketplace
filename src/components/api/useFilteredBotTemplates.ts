@@ -1,16 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 import {
-  AppsFilterType,
-  SearchAppsSchema,
-  SearchAppsType,
-} from "@/server/services/DbService/AppDbService";
-import { AppType } from "@/lib/schemas/AppSchema";
+  BotTemplatesFilterType,
+  SearchBotTemplatesSchema,
+  SearchBotTemplatesType,
+} from "@/server/services/DbService/BotTemplateDbService";
+import { BotTemplateType } from "@/lib/schemas/BotTemplateSchema";
 import { useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 
-export function useFilteredApps(
+export function useFilteredBotTemplates(
   searchTerm: string,
-  filters: AppsFilterType,
+  filters: BotTemplatesFilterType,
   page: number = 1,
   itemsPerPage: number = 10
 ) {
@@ -23,19 +23,18 @@ export function useFilteredApps(
   });
 
   return useQuery({
-    queryKey: ["apps", session?.user?.id],
+    queryKey: ["bot-templates", session?.user?.id],
     queryFn: async () => {
-      const body = SearchAppsSchema.parse({
+      const body = SearchBotTemplatesSchema.parse({
         filters: {
           userId: filters.userId,
-          userEmail: filters.userEmail ?? searchTerm,
           name: filters.name ?? searchTerm,
         },
         page,
         itemsPerPage,
-      } satisfies SearchAppsType);
+      } satisfies SearchBotTemplatesType);
 
-      const response = await fetch(`/api/apps/search`, {
+      const response = await fetch(`/api/bot-templates/search`, {
         method: "POST",
         credentials: "include",
         headers: {
@@ -51,11 +50,11 @@ export function useFilteredApps(
           router.push("/auth");
           throw new Error("Session expired. Please sign in again.");
         }
-        throw new Error("Failed to fetch apps");
+        throw new Error("Failed to fetch bots");
       }
 
       return response.json() as Promise<{
-        apps: AppType[];
+        botTemplates: BotTemplateType[];
         totalCount: number;
       }>;
     },

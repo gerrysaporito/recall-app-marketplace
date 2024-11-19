@@ -29,25 +29,27 @@ const UpdateUserSchema = z.object({
  * Service class business logic
  */
 export const UserDbService = {
-  _parseDbToSchema: function (args: { model: User }) {
+  include: {} as const,
+
+  _parseModel: function (args: { model: User }) {
     const { model } = args;
-    const result = ReadUserSchema.parse({
+    return ReadUserSchema.parse({
       ...model,
     } satisfies z.input<typeof ReadUserSchema>);
-    return result;
   },
+
   createUser: async function (
     args: z.infer<typeof CreateUserSchema>
   ): Promise<{ user: z.infer<typeof ReadUserSchema> }> {
     const { userId, userArgs } = CreateUserSchema.parse(args);
-    const User = await prisma.user.create({
+    const user = await prisma.user.create({
       data: {
         ...userArgs,
         id: userId ?? `user_${cuid()}`,
       },
-      include: {},
+      include: this.include,
     });
-    const result = this._parseDbToSchema({ model: User });
+    const result = this._parseModel({ model: user });
     return { user: result };
   },
 
@@ -58,9 +60,9 @@ export const UserDbService = {
     const User = await prisma.user.update({
       where: { id: userId },
       data: { ...userArgs },
-      include: {},
+      include: this.include,
     });
-    const result = this._parseDbToSchema({ model: User });
+    const result = this._parseModel({ model: User });
     return { user: result };
   },
 
@@ -70,12 +72,12 @@ export const UserDbService = {
     const { userId } = z.object({ userId: z.string() }).parse(args);
     const User = await prisma.user.findUnique({
       where: { id: userId, deletedAt: null },
-      include: {},
+      include: this.include,
     });
     if (!User) {
       return { user: null };
     }
-    const result = this._parseDbToSchema({ model: User });
+    const result = this._parseModel({ model: User });
     return { user: result };
   },
 
@@ -85,12 +87,12 @@ export const UserDbService = {
     const { email } = z.object({ email: z.string() }).parse(args);
     const User = await prisma.user.findUnique({
       where: { email: email, deletedAt: null },
-      include: {},
+      include: this.include,
     });
     if (!User) {
       return { user: null };
     }
-    const result = this._parseDbToSchema({ model: User });
+    const result = this._parseModel({ model: User });
     return { user: result };
   },
 };

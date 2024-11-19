@@ -25,7 +25,12 @@ const UpdateWebhookEventSchema = z.object({
 });
 
 export const WebhookEventDbService = {
-  _parseWebhookEvent: (args: {
+  include: {
+    webhook: true,
+    user: true,
+  } as const,
+
+  _parseModel: (args: {
     model: WebhookEvent & { webhook: Webhook; user: User };
   }): z.infer<typeof ReadWebhookEventSchema> => {
     const { model } = args;
@@ -46,9 +51,9 @@ export const WebhookEventDbService = {
         ...webhookEventArgs,
         id: webhookEventId ?? `webhookEvent_${cuid()}`,
       },
-      include: { webhook: true, user: true },
+      include: this.include,
     });
-    const result = this._parseWebhookEvent({ model: webhookEvent });
+    const result = this._parseModel({ model: webhookEvent });
     return { webhookEvent: result };
   },
 
@@ -60,9 +65,9 @@ export const WebhookEventDbService = {
     const webhookEvent = await prisma.webhookEvent.update({
       where: { id: webhookEventId },
       data: webhookEventArgs,
-      include: { webhook: true, user: true },
+      include: this.include,
     });
-    const result = this._parseWebhookEvent({ model: webhookEvent });
+    const result = this._parseModel({ model: webhookEvent });
     return { webhookEvent: result };
   },
 
@@ -76,12 +81,12 @@ export const WebhookEventDbService = {
       .parse(args);
     const webhookEvent = await prisma.webhookEvent.findUnique({
       where: { id: webhookEventId, deletedAt: null },
-      include: { webhook: true, user: true },
+      include: this.include,
     });
     if (!webhookEvent) {
       return { webhookEvent: null };
     }
-    const result = this._parseWebhookEvent({ model: webhookEvent });
+    const result = this._parseModel({ model: webhookEvent });
     return { webhookEvent: result };
   },
 
@@ -91,11 +96,11 @@ export const WebhookEventDbService = {
     const { webhookId } = z.object({ webhookId: z.string() }).parse(args);
     const webhookEvents = await prisma.webhookEvent.findMany({
       where: { webhookId, deletedAt: null },
-      include: { webhook: true, user: true },
+      include: this.include,
       orderBy: { createdAt: "desc" },
     });
     const result = webhookEvents.map((webhookEvent) =>
-      this._parseWebhookEvent({ model: webhookEvent })
+      this._parseModel({ model: webhookEvent })
     );
     return { webhookEvents: result };
   },
