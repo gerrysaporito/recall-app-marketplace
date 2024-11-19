@@ -48,6 +48,4 @@ export const BotTriggerEventDbService = {
     const result = this._parseModel({ model: botTriggerEvent });
     return { botTriggerEvent: result };
   },
-
-  // Add other standard methods as needed...
 };

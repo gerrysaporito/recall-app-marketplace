@@ -69,7 +69,7 @@ model User {
   webhooks      Webhook[]
   webhookEvents WebhookEvent[]
   apps          App[]
-  bots          Bot[]
+  botTemplates  BotTemplate[]
 }
 
 model VerificationRequest {
@@ -99,7 +99,7 @@ model Webhook {
   userId String
   user   User           @relation(fields: [userId], references: [id])
   events WebhookEvent[]
-  app    App[]
+  apps   App[]
 }
 
 model WebhookEvent {
@@ -139,18 +139,19 @@ model App {
   deletedAt DateTime?
 
   // Relations
-  userId     String
-  webhookId  String
-  botId      String?
-  user       User           @relation(fields: [userId], references: [id])
-  webhook    Webhook        @relation(fields: [webhookId], references: [id])
-  bot        Bot?           @relation(fields: [botId], references: [id])
-  dataFields AppDataField[]
-  botApp     BotApp[]
+  userId          String
+  webhookId       String
+  user            User             @relation(fields: [userId], references: [id])
+  webhook         Webhook          @relation(fields: [webhookId], references: [id])
+  dataFields      AppDataField[]
+  botTemplateApps BotTemplateApp[]
+  botTemplateId   String?
+  botTemplate     BotTemplate?     @relation(fields: [botTemplateId], references: [id])
 }
 
 model AppDataField {
   id    String  @id @default(cuid())
+  type  String
   key   String
   value String?
 
@@ -160,16 +161,14 @@ model AppDataField {
   deletedAt DateTime?
 
   // Relations
-  appId       String
-  app         App           @relation(fields: [appId], references: [id])
-  botAppField BotAppField[]
+  appId                    String
+  app                      App                       @relation(fields: [appId], references: [id])
+  botTemplateAppDataFields BotTemplateAppDataField[]
 }
 
-model Bot {
-  id          String @id @default(cuid())
-  name        String
-  meetingUrl  String
-  recallBotId String
+model BotTemplate {
+  id   String @id @default(cuid())
+  name String
 
   // Timestamps
   createdAt DateTime  @default(now())
@@ -177,13 +176,14 @@ model Bot {
   deletedAt DateTime?
 
   // Relations
-  userId  String
-  user    User     @relation(fields: [userId], references: [id])
-  apps    App[]
-  botApps BotApp[]
+  userId          String
+  user            User             @relation(fields: [userId], references: [id])
+  apps            App[]
+  botTemplateApps BotTemplateApp[]
+  bots            Bot[]
 }
 
-model BotApp {
+model BotTemplateApp {
   id String @id @default(cuid())
 
   // Timestamps
@@ -192,15 +192,16 @@ model BotApp {
   deletedAt DateTime?
 
   // Relations
-  botId        String
-  appId        String
-  bot          Bot           @relation(fields: [botId], references: [id])
-  app          App           @relation(fields: [appId], references: [id])
-  botAppFields BotAppField[]
+  appId                    String
+  app                      App                       @relation(fields: [appId], references: [id])
+  botTemplateAppDataFields BotTemplateAppDataField[]
+  botTemplateId            String
+  botTemplate              BotTemplate               @relation(fields: [botTemplateId], references: [id])
 }
 
-model BotAppField {
+model BotTemplateAppDataField {
   id    String  @id @default(cuid())
+  type  String
   value String?
 
   // Timestamps
@@ -209,10 +210,18 @@ model BotAppField {
   deletedAt DateTime?
 
   // Relations
-  botAppId   String
-  appFieldId String
-  botApp     BotApp       @relation(fields: [botAppId], references: [id])
-  appField   AppDataField @relation(fields: [appFieldId], references: [id])
+  botTemplateAppId String
+  botTemplateApp   BotTemplateApp @relation(fields: [botTemplateAppId], references: [id])
+  appDataFieldId   String
+  appDataField     AppDataField   @relation(fields: [appDataFieldId], references: [id])
+}
+
+model Bot {
+  id            String      @id @default(cuid())
+  meetingUrl    String
+  recallBotId   String
+  botTemplateId String
+  botTemplate   BotTemplate @relation(fields: [botTemplateId], references: [id])
 }
 
 model BotTriggerEvent {
