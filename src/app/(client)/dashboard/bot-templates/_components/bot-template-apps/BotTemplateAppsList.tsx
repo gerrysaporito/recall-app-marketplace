@@ -75,8 +75,8 @@ export function BotTemplateAppsList({
           </TableHeader>
           <TableBody>
             {botTemplateApps.map((botTemplateApp) => (
-              <TableRow key={botTemplateApp.appId}>
-                <TableCell>{botTemplateApp.appId}</TableCell>
+              <TableRow key={botTemplateApp.app.name}>
+                <TableCell>{botTemplateApp.app.name}</TableCell>
                 <TableCell>
                   {botTemplateApp.botTemplateAppDataFields.length} configured
                 </TableCell>

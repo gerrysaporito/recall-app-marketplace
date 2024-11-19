@@ -24,6 +24,7 @@ import { BotTemplateType } from "@/lib/schemas/BotTemplateSchema";
 import { useSession } from "next-auth/react";
 import { BotTemplateViewDialog } from "./BotTemplateViewDialog";
 import { BotTemplateAppsList } from "./bot-template-apps/BotTemplateAppsList";
+import { BotTemplateDeployButton } from "./BotTemplateDeployButton";
 
 export function BotTemplateList({
   searchTerm,
@@ -60,47 +61,50 @@ export function BotTemplateList({
                 <div>
                   <CardTitle>{botTemplate.name}</CardTitle>
                 </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      onClick={() => {
-                        setSelectedBot(botTemplate);
-                        setIsViewOpen(true);
-                      }}
-                    >
-                      <Eye className="mr-2 h-4 w-4" />
-                      View
-                    </DropdownMenuItem>
-                    {session?.user?.email === botTemplate.userEmail && (
-                      <>
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setSelectedBot(botTemplate);
-                            setIsUpdateOpen(true);
-                          }}
-                        >
-                          <Pencil className="mr-2 h-4 w-4" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setSelectedBot(botTemplate);
-                            setIsDeleteOpen(true);
-                          }}
-                          className="text-red-600"
-                        >
-                          <Trash className="mr-2 h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
-                      </>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <div className="flex items-center space-x-2">
+                  <BotTemplateDeployButton botTemplate={botTemplate} />
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="h-8 w-8 p-0">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setSelectedBot(botTemplate);
+                          setIsViewOpen(true);
+                        }}
+                      >
+                        <Eye className="mr-2 h-4 w-4" />
+                        View
+                      </DropdownMenuItem>
+                      {session?.user?.email === botTemplate.userEmail && (
+                        <>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setSelectedBot(botTemplate);
+                              setIsUpdateOpen(true);
+                            }}
+                          >
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setSelectedBot(botTemplate);
+                              setIsDeleteOpen(true);
+                            }}
+                            className="text-red-600"
+                          >
+                            <Trash className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
