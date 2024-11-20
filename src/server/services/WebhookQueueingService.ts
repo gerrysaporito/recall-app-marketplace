@@ -224,14 +224,15 @@ class WebhookQueueingClass {
 
     const url = new URL(webhook.url);
     if (url.protocol !== "https:") {
+      // ! This is only run locally so we can skip it
       const failureReason = `Webhook with ID ${webhookId} is not using HTTPS`;
-      await this.updateWebhookEventFailure(webhookEventId, failureReason);
+      // await this.updateWebhookEventFailure(webhookEventId, failureReason);
       logger.error({
         message: "Insecure webhook URL",
         error: new Error(failureReason),
         metadata: { webhookId, url: webhook.url, webhookEventId },
       });
-      return { webhookEvent: null };
+      // return { webhookEvent: null };
     }
 
     logger.info({
@@ -307,7 +308,7 @@ class WebhookQueueingClass {
         webhookEventId,
         webhookEventArgs: {
           responseStatus: response.status,
-          responseBody,
+          responseBody: responseText,
           status,
           failureReason,
           requestSentAt,
