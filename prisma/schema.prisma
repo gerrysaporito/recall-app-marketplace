@@ -258,7 +258,7 @@ model BotTranscript {
 model BotTriggerEvent {
   id             String  @id
   actionName     String
-  triggerEventId String  @unique
+  triggerEventId String
   recordingId    String
   speakerName    String?
   speakerId      String
@@ -275,4 +275,6 @@ model BotTriggerEvent {
   bot              Bot            @relation(fields: [botId], references: [id])
   botTemplateAppId String
   botTemplateApp   BotTemplateApp @relation(fields: [botTemplateAppId], references: [id])
+
+  @@unique([triggerEventId, speakerId, recordingId, botId])
 }
