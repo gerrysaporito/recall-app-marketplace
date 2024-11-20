@@ -68,18 +68,6 @@ export const handleRecallTranscription = async (
     return;
   }
 
-  // Get all chat transcripts for this speaker
-  const { botTranscripts } = await DbService.botTranscript.searchBotTranscripts(
-    {
-      filters: {
-        botId: bot.id,
-        recordingId: data.recording_id,
-        speakerId: data.transcript.speaker_id.toString(),
-      },
-      page: 1,
-      itemsPerPage: 10000,
-    }
-  );
   const { botTemplate } = bot;
 
   // Parse the template data into trigger events
@@ -107,7 +95,7 @@ export const handleRecallTranscription = async (
   const matchedEvents = await OpenAiService.analyzeTranscript({
     triggerName: bot.name,
     triggerEventTemplates,
-    transcriptWords: botTranscripts, // latestBotTranscripts,
+    transcriptWords: latestBotTranscripts,
     logger,
   });
 

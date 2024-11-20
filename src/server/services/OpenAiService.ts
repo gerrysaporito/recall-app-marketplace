@@ -285,10 +285,12 @@ matchedText (string): The exact text of the action command, excluding the trigge
 Transcript with timestamps: ${JSON.stringify(transcriptWords, null, 2)}
 Transcript as a string: ${transcript}
 
+Can you add the start timestamp of when "${triggerName}" was mentioned for each action command to populate the recallTimestamp field?
+
 Available Templates:
 ${JSON.stringify(triggerEventTemplates, null, 2)}
 
-Return any matched templates with {{command}} fields populated from the transcript, including the timestamp when "${triggerName}" was mentioned.`;
+Return any matched templates with {{command}} fields populated from the transcript, including the timestamp when "${triggerName}" was mentioned for recallTimestamp.`;
 
     // Define maximum number of attempts to re-prompt in case of validation failure
     const MAX_ATTEMPTS = 3;
@@ -326,6 +328,7 @@ Return any matched templates with {{command}} fields populated from the transcri
           message: "OpenAI analysis complete",
           metadata: {
             matchedEventsCount: matchedEvents.length,
+            matchedEvents,
           },
         });
 
