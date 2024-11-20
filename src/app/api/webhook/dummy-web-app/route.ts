@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
-import { handleRecallTranscription } from "@/server/routers/webhooks/recall/handleRecallTranscriptionEvent";
 import { ServerLogger } from "@/server/services/LoggerService/ServerLogger";
 import cuid from "cuid";
-import { RecallWebhookEventSchema } from "@/lib/schemas/RecallWebhookEventSchema";
-import { WebhookEventSchema } from "@/lib/schemas/WebhookEventSchema";
 import { WebhookEventType } from "@/lib/constants/WebhookEventType";
 import { z } from "zod";
 import { BotTriggerEventSchema } from "@/lib/schemas/BotTriggerEventSchema";
@@ -57,6 +54,18 @@ export async function POST(request: Request) {
       await DiscordService.sendSev2Alert({
         content: `You have been summoned to the google meets call`,
         error: new Error(`You have been summoned`),
+      });
+      const url = `http://localhost:3000/api/v1/bot/${data.botId}/message`;
+      const response = await fetch(url, {
+        method: "POST",
+        body: JSON.stringify({
+          message: `Notified the slack peeps, we'll see if they can make it`,
+        }),
+      });
+      const responseData = await response.json();
+      logger.info({
+        message: "Created and sent google docs message",
+        metadata: { responseData },
       });
     } else if (data.actionName.toLowerCase().includes("doc")) {
       logger.info({
