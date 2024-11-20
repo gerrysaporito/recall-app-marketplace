@@ -2,6 +2,7 @@ import { z } from "zod";
 import { BaseEntitySchema } from "./BaseEntitySchema";
 
 export const BotTriggerEventSchema = BaseEntitySchema.extend({
+  actionName: z.string(),
   recordingId: z.string(),
   speakerName: z.string().nullable(),
   speakerId: z.string(),
@@ -10,7 +11,6 @@ export const BotTriggerEventSchema = BaseEntitySchema.extend({
   botId: z.string(),
   botTemplateAppId: z.string(),
   triggerEventId: z.string(),
-  args: z.string(),
 });
 
 export type BotTriggerEventType = z.infer<typeof BotTriggerEventSchema>;

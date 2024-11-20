@@ -29,13 +29,15 @@ export const RecallWebhookEventSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  try {
-    const logger = new ServerLogger({
-      traceId: cuid(),
-      spanId: "handleRecallTranscription",
-    });
+  const logger = new ServerLogger({
+    traceId: cuid(),
+    spanId: "recall-webhook",
+  });
 
-    const body = await request.json();
+  let body;
+
+  try {
+    body = await request.json();
     const result = RecallWebhookEventSchema.safeParse(body);
     if (!result.success) {
       return NextResponse.json({}, { status: 400 });
@@ -60,7 +62,14 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Failed to process Recall webhook:", error);
+    logger.error({
+      message: "Failed to process Recall webhook",
+      error: error as Error,
+      metadata: {
+        origin: request.url,
+        body,
+      },
+    });
     return NextResponse.json(
       { error: "Failed to process webhook" },
       { status: 500 }

@@ -7,13 +7,16 @@ import { QueueLogger } from "@/server/services/LoggerService/QueueLogger";
 import { WebhookEventType } from "@/lib/constants/WebhookEventType";
 import { WebhookEventStatus } from "@/lib/constants/WebhookEventStatus";
 
-const EnqueueJobHandlerArgsSchema = z.object({
-  webhookEventId: z.string(),
+const EnqueueJobArgsSchema = z.object({
   webhookId: z.string(),
   type: z.nativeEnum(WebhookEventType),
   userId: z.string(),
   data: z.any(),
   logger: z.any().refine((data) => !!data, "Logger is required"),
+});
+
+const EnqueueJobHandlerArgsSchema = EnqueueJobArgsSchema.extend({
+  webhookEventId: z.string(),
 });
 
 class WebhookQueueingClass {
@@ -76,10 +79,9 @@ class WebhookQueueingClass {
   };
 
   enqueueJob = async (
-    args: z.infer<typeof EnqueueJobHandlerArgsSchema>
-  ): Promise<{ job: Job<z.infer<typeof EnqueueJobHandlerArgsSchema>> }> => {
-    const { webhookId, logger, ...data } =
-      EnqueueJobHandlerArgsSchema.parse(args);
+    args: Omit<z.infer<typeof EnqueueJobArgsSchema>, "webhookEventId">
+  ): Promise<{ job: Job<z.infer<typeof EnqueueJobArgsSchema>> }> => {
+    const { webhookId, logger, ...data } = EnqueueJobArgsSchema.parse(args);
     const queueLogger = new QueueLogger({
       ...logger.context,
       spanId: "enqueueWebhookJob",
@@ -278,7 +280,9 @@ class WebhookQueueingClass {
     let responseText;
     try {
       responseText = await response.text();
-      responseBody = JSON.parse(responseText);
+      responseBody = JSON.parse(
+        !!responseText.trim() ? responseText.trim() : "{}"
+      );
     } catch (error) {
       logger.error({
         message: "Failed to parse response body as JSON",

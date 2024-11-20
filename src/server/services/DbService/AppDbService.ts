@@ -5,6 +5,7 @@ import { prisma } from "@/config/prisma";
 import { AppSchema } from "@/lib/schemas/AppSchema";
 import { AppDataFieldSchema } from "@/lib/schemas/AppDataFieldSchema";
 import { skip } from "@prisma/client/runtime/library";
+import app from "next/app";
 
 const WriteAppSchema = AppSchema.omit({
   id: true,
@@ -93,12 +94,16 @@ export const AppDbService = {
         id: appId ?? `app_${cuid()}`,
         ...appData,
         webhookId: webhook.id,
-        dataFields: {
-          create: dataFields.map((field) => ({
-            ...field,
-            id: `field_${cuid()}`,
-          })),
-        },
+        ...(dataFields.filter((field) => !!field.key).length > 0
+          ? {
+              dataFields: {
+                create: dataFields.map((field) => ({
+                  ...field,
+                  id: `field_${cuid()}`,
+                })),
+              },
+            }
+          : {}),
       },
       include: {
         user: true,

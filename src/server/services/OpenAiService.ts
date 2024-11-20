@@ -118,7 +118,7 @@ missingData with placeholders replaced by the extracted data.
 Additional fields:
 confidence: a value between 0 and 1 indicating the confidence level of the match.
 matchedText: the exact text of the action command.
-recallTimestamp: Not applicable in this context (since timestamps are not provided in the simplified transcript). If timestamps are available, include the timestamp when the trigger word was mentioned.
+recallTimestamp: The timestamp when the trigger word was mentioned for this command. This is unique as each command has its own trigger word and timestamp.
 Return All Matched Events:
 
 Compile a list of all matchedEvent objects created from the transcript.
@@ -126,7 +126,7 @@ Ensure that all action commands are represented in the output.
 Specific Instructions:
 Trigger Word:
 
-The trigger word is ${triggerName} (e.g., "joe,").
+The trigger word is ${triggerName}.
 It is always present at the beginning of each action command.
 Action Command Boundaries:
 
@@ -142,6 +142,7 @@ Action Name: "Play elevator music on Spotify"
 Command: "joe, play elevator music on Spotify."
 Extracted missingData: {} (No missing data required)
 Confidence Score:
+Recall timestamp: timestamp of when the trigger word (joe) was mentioned.
 
 Assign a high confidence score (e.g., 0.95) if the action command clearly matches the action template and the missing data is accurately extracted.
 Matched Text:
@@ -151,8 +152,6 @@ Example: For "joe, can you ping the slack channel called dogs for me?", the matc
 Example with Multiple Action Commands:
 Transcript:
 
-arduino
-Copy code
 "Hey, joe, can you go and ping the slack channel called dogs for me, please? Thank you. Hey, joe, message the slack channel called general. Thank you. Hey, joe, play elevator music on Spotify. Thanks. Hey, joe, don't forget to ping the slack channel called updates. Thank you."
 Action Templates:
 
@@ -169,6 +168,7 @@ Expected Output:
       "speakerName": "Gerry Saporito",
       "speakerId": "100",
       "recallBotId": "...",
+      "recallTimestamp": 4444,
       "missingData": {
         "channelName": "dogs"
       },
@@ -183,6 +183,7 @@ Expected Output:
       "speakerName": "Gerry Saporito",
       "speakerId": "100",
       "recallBotId": "...",
+      "recallTimestamp": 5555,
       "missingData": {
         "channelName": "general"
       },
@@ -197,6 +198,7 @@ Expected Output:
       "speakerName": "Gerry Saporito",
       "speakerId": "100",
       "recallBotId": "...",
+      "recallTimestamp": 6666,
       "missingData": {},
       "confidence": 0.95,
       "matchedText": "play elevator music on Spotify"
@@ -209,6 +211,7 @@ Expected Output:
       "speakerName": "Gerry Saporito",
       "speakerId": "100",
       "recallBotId": "...",
+      "recallTimestamp": 7777,
       "missingData": {
         "channelName": "updates"
       },
@@ -252,12 +255,13 @@ Please return your response as a JSON object with the following structure:
       "speakerName": "string",
       "speakerId": "string",
       "recallBotId": "string",
+      "recallTimestamp": number,
       "missingData": {
         // Key-value pairs with placeholders replaced by extracted data
       },
       "confidence": number,         // A value between 0 and 1
       "matchedText": "string",      // The extracted action command text
-      "recallTimestamp": number     // If available, the timestamp when the trigger word was mentioned; otherwise, null
+      "recallTimestamp": number     // The timestamp when the trigger word for this command was mentioned
     }
     // Additional matchedEvent objects...
   ]
@@ -271,10 +275,10 @@ recordingId (string): The unique identifier from the action template.
 speakerName (string): The name of the speaker from the action template.
 speakerId (string): The ID of the speaker from the action template.
 recallBotId (string): The unique identifier from the action template.
+recallTimestamp (number): The timestamp when the trigger word (${triggerName}) for this command was mentioned. This is unique as each command has its own trigger word and timestamp.
 missingData (object): An object containing the required data for the action, with placeholders replaced by the extracted values.
 confidence (number): A value between 0 and 1 indicating the confidence level of the match.
 matchedText (string): The exact text of the action command, excluding the trigger word and ending.
-recallTimestamp (number): If timestamps are available, the timestamp when the trigger word was mentioned; otherwise, this field may be set to null or omitted.
 `;
 
     const userPrompt = `
@@ -286,7 +290,7 @@ ${JSON.stringify(triggerEventTemplates, null, 2)}
 
 Return any matched templates with {{command}} fields populated from the transcript, including the timestamp when "${triggerName}" was mentioned.`;
 
-    // Define maximum number of attempts to reprompt in case of validation failure
+    // Define maximum number of attempts to re-prompt in case of validation failure
     const MAX_ATTEMPTS = 3;
     let attempts = 0;
     let matchedEvents: MatchedTriggerEventType[] = [];

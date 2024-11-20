@@ -18,17 +18,20 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { BotTemplateType } from "@/lib/schemas/BotTemplateSchema";
 
 interface BotTemplateAppsViewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   botTemplateApp: BotTemplateAppType | null;
+  bot: BotTemplateType;
 }
 
 export function BotTemplateAppsViewDialog({
   open,
   onOpenChange,
   botTemplateApp,
+  bot,
 }: BotTemplateAppsViewDialogProps) {
   if (!botTemplateApp) return null;
 
@@ -72,11 +75,11 @@ export function BotTemplateAppsViewDialog({
                       1. Start with:
                     </p>
                     <p className="font-mono text-sm bg-muted p-2 rounded-md">
-                      hey recall
+                      hey {bot.name}
                     </p>
                     <p className="text-sm text-muted-foreground mt-4">
                       2. Then say each of these commands and their values (you
-                      can speak this naturally and recall will parse the
+                      can speak this naturally and {bot.name} will parse the
                       information):
                     </p>
                   </div>
@@ -105,7 +108,7 @@ export function BotTemplateAppsViewDialog({
                       3. Finally, end with:
                     </p>
                     <p className="font-mono text-sm bg-muted p-2 rounded-md">
-                      thanks recall
+                      thanks
                     </p>
                     <div className="rounded-md border-l-4 border-red-500 bg-red-50 p-4 mt-4">
                       <p className="text-sm font-semibold text-red-800">

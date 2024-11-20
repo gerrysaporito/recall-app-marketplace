@@ -3,8 +3,16 @@ import { z } from "zod";
 import { RecallWebhookEventSchema } from "../route";
 import { OpenAiService } from "@/server/services/OpenAiService";
 import { ServerLogger } from "@/server/services/LoggerService/ServerLogger";
-import cuid from "cuid";
-import { TriggerEventTemplateSchema } from "@/lib/schemas/TriggerEventSchema";
+import {
+  TriggerEventTemplateSchema,
+  TriggerEventTemplateType,
+} from "@/lib/schemas/TriggerEventSchema";
+import {
+  BotTriggerEventSchema,
+  BotTriggerEventType,
+} from "@/lib/schemas/BotTriggerEventSchema";
+import { WebhookQueueingService } from "@/server/services/WebhookQueueingService";
+import { WebhookEventType } from "@/lib/constants/WebhookEventType";
 
 export const handleRecallTranscription = async (
   data: z.infer<typeof RecallWebhookEventSchema>["data"],
@@ -92,7 +100,7 @@ export const handleRecallTranscription = async (
       missingData: appData,
       botId: bot.id,
       botTemplateAppId: app.id,
-    });
+    } satisfies TriggerEventTemplateType);
   });
 
   // Pass transcripts and trigger event templates to OpenAI
@@ -103,36 +111,88 @@ export const handleRecallTranscription = async (
     logger,
   });
 
-  console.log(
-    JSON.stringify(
-      {
-        botTranscript: botTranscripts.map((word) => word.word).join(" "),
-        matchedEvents,
-        triggerEventTemplates,
+  const rawTriggerEvents = matchedEvents.map((event) =>
+    BotTriggerEventSchema.omit({
+      id: true,
+      createdAt: true,
+      updatedAt: true,
+    }).parse({
+      ...event,
+      // AI hallucinates this number slightly so round up to the nearest 10 to keep it consistent
+      triggerEventId: (Math.ceil(event.recallTimestamp / 10) * 10).toString(),
+      data: {
+        ...triggerEventTemplates.find(
+          (template) => template.actionName === event.actionName
+        )?.missingData,
+        ...event.missingData,
       },
-      null,
-      2
-    )
+      actionName: event.actionName,
+    } satisfies Omit<BotTriggerEventType, "id" | "createdAt" | "updatedAt">)
   );
 
+  logger.info({
+    message: "Trigger events parsed",
+    metadata: {
+      count: rawTriggerEvents.length,
+      triggerEvents: rawTriggerEvents,
+    },
+  });
+
   // Create trigger events for matched templates
-  // await Promise.all(
-  //   matchedEvents.map((event) =>
-  //     DbService.botTriggerEvent.createBotTriggerEvent({
-  //       botTriggerEventArgs: {
-  //         ...event,
-  //         triggerEventId: event.triggerEventId,
-  //         recallBotId: data.bot_id,
-  //         args: JSON.stringify({
-  //           type: "transcription",
-  //           data: data,
-  //           confidence: event.confidence,
-  //           matchedText: event.matchedText,
-  //         }),
-  //       },
-  //     })
-  //   )
-  // );
+  const rawBotTriggerEvents = await Promise.all(
+    rawTriggerEvents.map(async (event) => {
+      const { botTriggerEvent: existingBotTriggerEvent } =
+        await DbService.botTriggerEvent.getTriggerEventForBot({
+          botId: bot.id,
+          recordingId: data.recording_id,
+          triggerEventId: event.triggerEventId,
+        });
+      if (existingBotTriggerEvent) {
+        return;
+      }
+      const { botTriggerEvent: newBotTriggerEvent } =
+        await DbService.botTriggerEvent.createBotTriggerEvent({
+          botTriggerEventArgs: event,
+        });
+      return newBotTriggerEvent;
+    })
+  );
+  const botTriggerEvents = rawBotTriggerEvents.filter((v) => !!v);
+
+  logger.info({
+    message: "Bot trigger events created",
+    metadata: {
+      botId: bot.id,
+      recordingId: data.recording_id,
+      count: botTriggerEvents.length,
+      botTriggerEvents,
+    },
+  });
+
+  // Emit webhook
+  let webhookCount = 0;
+  for (const botTriggerEvent of botTriggerEvents) {
+    const { botTemplateApp } =
+      await DbService.botTemplateApp.getBotTemplateAppById({
+        botTemplateAppId: botTriggerEvent.botTemplateAppId,
+      });
+    if (!botTemplateApp) {
+      continue;
+    }
+    await WebhookQueueingService.enqueueJob({
+      webhookId: botTemplateApp.app.webhookId,
+      type: WebhookEventType.event_triggered,
+      data: botTriggerEvent,
+      userId: botTemplateApp.app.userId,
+      logger,
+    });
+    webhookCount += 1;
+  }
+
+  logger.info({
+    message: "Webhooks enqueued",
+    metadata: { count: webhookCount },
+  });
 
   logger.info({
     message: "Recall transcription processed",

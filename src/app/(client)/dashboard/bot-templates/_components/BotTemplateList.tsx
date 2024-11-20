@@ -109,7 +109,7 @@ export function BotTemplateList({
             </CardHeader>
             <CardContent>
               <BotTemplateAppsList
-                botTemplateId={botTemplate.id}
+                botTemplate={botTemplate}
                 botTemplateApps={botTemplate.botTemplateApps}
                 isOwner={session?.user?.id === botTemplate.userId}
               />

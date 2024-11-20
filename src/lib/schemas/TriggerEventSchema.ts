@@ -16,6 +16,7 @@ export const TriggerEventTemplateSchema = z.object({
 export const MatchedTriggerEventSchema = TriggerEventTemplateSchema.extend({
   confidence: z.number(),
   matchedText: z.string(),
+  recallTimestamp: z.number(),
 });
 
 export type TriggerEventTemplateType = z.infer<

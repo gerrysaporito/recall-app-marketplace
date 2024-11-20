@@ -23,15 +23,16 @@ import { BotTemplateAppsViewDialog } from "./BotTemplateAppsViewDialog";
 import { BotTemplateAppType } from "@/lib/schemas/BotTemplateAppSchema";
 import { Badge } from "@/components/ui/badge";
 import { BotTemplateAppsCreateDialog } from "./BotTemplateAppsCreateDialog";
+import { BotTemplateType } from "@/lib/schemas/BotTemplateSchema";
 
 interface BotTemplateAppsListProps {
-  botTemplateId: string;
+  botTemplate: BotTemplateType;
   botTemplateApps: BotTemplateAppType[];
   isOwner: boolean;
 }
 
 export function BotTemplateAppsList({
-  botTemplateId,
+  botTemplate,
   botTemplateApps,
   isOwner,
 }: BotTemplateAppsListProps) {
@@ -135,12 +136,13 @@ export function BotTemplateAppsList({
       <BotTemplateAppsCreateDialog
         open={isCreateOpen}
         onOpenChange={setIsCreateOpen}
-        botTemplateId={botTemplateId}
+        botTemplateId={botTemplate.id}
       />
       <BotTemplateAppsViewDialog
         open={isViewOpen}
         onOpenChange={setIsViewOpen}
         botTemplateApp={selectedBotApp}
+        bot={botTemplate}
       />
       <BotTemplateAppsUpdateDialog
         open={isUpdateOpen}
