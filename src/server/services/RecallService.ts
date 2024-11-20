@@ -1,5 +1,5 @@
 import { env } from "@/config/env.mjs";
-import { APP_URL } from "@/components/lib/routes";
+import { APP_URL } from "@/lib/routes";
 import { z } from "zod";
 import { RedisValueType } from "@/lib/schemas/RedisValueSchema";
 import { RedisService } from "./RedisService";

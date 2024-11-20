@@ -3,7 +3,7 @@ import GitHubProvider from "next-auth/providers/github";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { env } from "@/config/env.mjs";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
-import { prisma } from "@/components/lib/prisma";
+import { prisma } from "@/config/prisma";
 import { compare, hash } from "bcryptjs";
 import { DbService } from "@/server/services/DbService";
 
