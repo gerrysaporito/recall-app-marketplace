@@ -1,50 +1,11 @@
-import { WebhookEventType } from "@/lib/constants/WebhookEventType";
-import { DbService } from "@/server/services/DbService";
-import cuid from "cuid";
-import { BaseLogger } from "@/server/services/LoggerService/BaseLogger";
-import { WebhookQueueingService } from "@/server/services/WebhookQueueingService";
+import { RecallService } from "@/server/services/RecallService";
 
 const handler = async () => {
   try {
-    const webhookId = "test123";
-    const userId = "test123";
+    const botId = "38bc7f6e-fdc1-4d15-a5d6-5b5427cdee69";
+    const message = "This is a test message";
 
-    const logger = new BaseLogger({
-      traceId: cuid(),
-      spanId: cuid(),
-      service: "heartbeat",
-    });
-
-    let { user } = await DbService.user.getUserById({ userId });
-    if (!user) {
-      const { user: newUser } = await DbService.user.createUser({
-        userId: userId,
-        userArgs: { email: userId + "@test.com" },
-      });
-      user = newUser;
-    }
-
-    let { webhook } = await DbService.webhook.getWebhookById({ webhookId });
-    if (!webhook) {
-      const { webhook: newWebhook } = await DbService.webhook.createWebhook({
-        webhookId,
-        webhookArgs: {
-          url: "https://webhook.site/88518b03-9c26-4160-bb58-f20bb8da6720",
-          userId: user.id,
-        },
-      });
-      webhook = newWebhook;
-    }
-
-    WebhookQueueingService.enqueueJob({
-      type: WebhookEventType.event_triggered,
-      userId: webhook.userId,
-      webhookId: webhook.id,
-      logger,
-      data: {
-        message: "this is a test",
-      },
-    });
+    await RecallService.sendMessage({ recallBotId: botId, message });
 
     return new Response("doki doki");
   } catch (error) {

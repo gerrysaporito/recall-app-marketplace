@@ -1,3 +1,4 @@
+import { useToast } from "@/components/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -32,6 +33,7 @@ export function BotTemplateDeployDialog({
   const [meetingUrl, setMeetingUrl] = useState("");
   const [botName, setBotName] = useState(botTemplate.name);
   const [isDeploying, setIsDeploying] = useState(false);
+  const { toast } = useToast();
 
   const handleDeploy = async () => {
     setIsDeploying(true);
@@ -39,6 +41,12 @@ export function BotTemplateDeployDialog({
       await onDeploy({ meetingUrl, botName });
       onOpenChange(false);
     } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      toast({
+        title: "Error",
+        description: message,
+        variant: "destructive",
+      });
       console.error("Failed to deploy:", error);
     } finally {
       setIsDeploying(false);
