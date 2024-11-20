@@ -197,6 +197,7 @@ model BotTemplateApp {
   botTemplateAppDataFields BotTemplateAppDataField[]
   botTemplateId            String
   botTemplate              BotTemplate               @relation(fields: [botTemplateId], references: [id])
+  botTriggerEvents         BotTriggerEvent[]
 }
 
 model BotTemplateAppDataField {
@@ -217,20 +218,61 @@ model BotTemplateAppDataField {
 }
 
 model Bot {
-  id            String      @id @default(cuid())
-  meetingUrl    String
-  recallBotId   String
-  botTemplateId String
-  botTemplate   BotTemplate @relation(fields: [botTemplateId], references: [id])
-}
-
-model BotTriggerEvent {
   id          String @id @default(cuid())
+  meetingUrl  String
   recallBotId String
-  args        String
+  name        String
 
   // Timestamps
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
+
+  // Relations
+  botTemplateId   String
+  botTemplate     BotTemplate       @relation(fields: [botTemplateId], references: [id])
+  botTranscript   BotTranscript[]
+  botTriggerEvent BotTriggerEvent[]
+}
+
+model BotTranscript {
+  id          String  @id @default(cuid())
+  recordingId String
+  speakerName String?
+  speakerId   String
+  word        String
+  startTime   Int
+  endTime     Int
+  confidence  Float
+
+  // Timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  // Relations
+  botId String
+  bot   Bot    @relation(fields: [botId], references: [id])
+}
+
+model BotTriggerEvent {
+  id             String  @id
+  actionName     String
+  triggerEventId String  @unique
+  recordingId    String
+  speakerName    String?
+  speakerId      String
+  recallBotId    String
+  data           String
+
+  // Timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  // Relations
+  botId            String
+  bot              Bot            @relation(fields: [botId], references: [id])
+  botTemplateAppId String
+  botTemplateApp   BotTemplateApp @relation(fields: [botTemplateAppId], references: [id])
 }
