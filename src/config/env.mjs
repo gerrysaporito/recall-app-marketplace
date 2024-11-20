@@ -3,10 +3,10 @@
  * This file is included in `/next.config.js` which ensures the app isn't built with invalid env vars.
  * It has to be a `.js`-file to be imported there.
  */
-import { createEnv } from '@t3-oss/env-nextjs';
-import { z } from 'zod';
+import { createEnv } from "@t3-oss/env-nextjs";
+import { z } from "zod";
 
-const DEFAULT_PORT = parseInt(process.env.PORT ?? '3000');
+const DEFAULT_PORT = parseInt(process.env.PORT ?? "3000");
 
 export const env = createEnv({
   /**
@@ -20,6 +20,8 @@ export const env = createEnv({
     ENCRYPTION_KEY_SECRET: z.string(),
     GITHUB_CLIENT_ID: z.string(),
     GITHUB_CLIENT_SECRET: z.string(),
+    RECALL_API_KEY: z.string(),
+    OPENAI_API_KEY: z.string(),
   },
 
   /**
@@ -29,8 +31,8 @@ export const env = createEnv({
    */
   client: {
     NEXT_PUBLIC_NODE_ENV: z
-      .enum(['development', 'production', 'local'])
-      .default('local'),
+      .enum(["development", "production", "local"])
+      .default("local"),
   },
 
   /**
@@ -39,12 +41,14 @@ export const env = createEnv({
    */
   runtimeEnv: {
     PORT: DEFAULT_PORT,
+    RECALL_API_KEY: process.env.RECALL_API_KEY,
     NEXT_PUBLIC_NODE_ENV: process.env.NODE_ENV,
     DATABASE_URL: process.env.DATABASE_URL,
     ENCRYPTION_KEY_SECRET: process.env.ENCRYPTION_KEY_SECRET,
     GITHUB_CLIENT_ID: process.env.GITHUB_CLIENT_ID,
     GITHUB_CLIENT_SECRET: process.env.GITHUB_CLIENT_SECRET,
     REDIS_URL: process.env.REDIS_URL,
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

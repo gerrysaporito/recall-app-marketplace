@@ -40,7 +40,6 @@ const handler = async () => {
       type: WebhookEventType.event_triggered,
       userId: webhook.userId,
       webhookId: webhook.id,
-      webhookEventId: cuid(),
       logger,
       data: {
         message: "this is a test",

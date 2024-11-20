@@ -5,6 +5,7 @@ import { prisma } from "@/config/prisma";
 import { AppSchema } from "@/lib/schemas/AppSchema";
 import { AppDataFieldSchema } from "@/lib/schemas/AppDataFieldSchema";
 import { skip } from "@prisma/client/runtime/library";
+import app from "next/app";
 
 const WriteAppSchema = AppSchema.omit({
   id: true,
@@ -70,6 +71,14 @@ export const AppDbService = {
     const { appId, appArgs } = CreateAppSchema.parse(args);
     const { dataFields, webhookUrl, userEmail, ...appData } = appArgs;
 
+    // First verify the user exists
+    const user = await prisma.user.findUnique({
+      where: { id: appData.userId },
+    });
+    if (!user) {
+      throw new Error(`User with id ${appData.userId} not found`);
+    }
+
     // Create webhook first
     const webhook = await prisma.webhook.create({
       data: {
@@ -85,12 +94,16 @@ export const AppDbService = {
         id: appId ?? `app_${cuid()}`,
         ...appData,
         webhookId: webhook.id,
-        dataFields: {
-          create: dataFields.map((field) => ({
-            ...field,
-            id: `field_${cuid()}`,
-          })),
-        },
+        ...(dataFields.filter((field) => !!field.key).length > 0
+          ? {
+              dataFields: {
+                create: dataFields.map((field) => ({
+                  ...field,
+                  id: `field_${cuid()}`,
+                })),
+              },
+            }
+          : {}),
       },
       include: {
         user: true,

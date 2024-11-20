@@ -129,7 +129,7 @@ export function BotTemplateAppsUpdateDialog({
               </div>
             ) : (
               <div className="text-sm text-muted-foreground">
-                This app has no editable fields
+                Nothing to set up, just add the app and get started!
               </div>
             )}
 

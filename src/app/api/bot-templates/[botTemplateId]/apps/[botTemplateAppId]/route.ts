@@ -55,6 +55,14 @@ export async function PATCH(request: NextRequest) {
       });
     }
 
+    // Update webhook url
+    if (body.webhookUrl) {
+      await DbService.webhook.updateWebhook({
+        webhookId: existingBotApp.app.webhookId,
+        webhookArgs: { url: body.webhookUrl },
+      });
+    }
+
     const { botTemplateApp: updatedBotTemplateApp } =
       await DbService.botTemplateApp.getBotTemplateAppById({
         botTemplateAppId,

@@ -176,38 +176,41 @@ export function BotTemplateAppsCreateDialog({
               />
             </div>
 
-            {selectedApp && (
-              <div className="space-y-4">
-                <h3 className="font-medium">Configure Fields</h3>
-                {selectedApp.dataFields
-                  .filter((field) => field.type === "editable")
-                  .map((field) => (
-                    <div key={field.id} className="space-y-2">
-                      <Label>{field.key}</Label>
-                      <Controller
-                        name={`fields.${field.key}`}
-                        control={control}
-                        defaultValue=""
-                        rules={{ required: true }}
-                        render={({ field: formField }) => (
-                          <Input
-                            {...formField}
-                            value={formField.value || ""}
-                            placeholder={`Enter value for ${field.key}`}
-                          />
-                        )}
-                      />
+            {selectedApp &&
+              selectedApp.dataFields.filter((field) => {
+                return field.type === "editable";
+              }).length > 0 && (
+                <div className="space-y-4">
+                  <h3 className="font-medium">Configure Fields</h3>
+                  {selectedApp.dataFields
+                    .filter((field) => field.type === "editable")
+                    .map((field) => (
+                      <div key={field.id} className="space-y-2">
+                        <Label>{field.key}</Label>
+                        <Controller
+                          name={`fields.${field.key}`}
+                          control={control}
+                          defaultValue=""
+                          rules={{ required: true }}
+                          render={({ field: formField }) => (
+                            <Input
+                              {...formField}
+                              value={formField.value || ""}
+                              placeholder={`Enter value for ${field.key}`}
+                            />
+                          )}
+                        />
+                      </div>
+                    ))}
+                  {selectedApp.dataFields.filter(
+                    (field) => field.type === "editable"
+                  ).length === 0 && (
+                    <div className="text-sm text-muted-foreground">
+                      Nothing to set up, just add the app and get started!
                     </div>
-                  ))}
-                {selectedApp.dataFields.filter(
-                  (field) => field.type === "editable"
-                ).length === 0 && (
-                  <div className="text-sm text-muted-foreground">
-                    This app has no editable fields
-                  </div>
-                )}
-              </div>
-            )}
+                  )}
+                </div>
+              )}
 
             <Button
               type="submit"
