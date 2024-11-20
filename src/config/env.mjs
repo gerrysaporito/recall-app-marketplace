@@ -22,6 +22,7 @@ export const env = createEnv({
     GITHUB_CLIENT_SECRET: z.string(),
     RECALL_API_KEY: z.string(),
     OPENAI_API_KEY: z.string(),
+    DISCORD_BOT_TOKEN: z.string(),
   },
 
   /**
@@ -49,6 +50,7 @@ export const env = createEnv({
     GITHUB_CLIENT_SECRET: process.env.GITHUB_CLIENT_SECRET,
     REDIS_URL: process.env.REDIS_URL,
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+    DISCORD_BOT_TOKEN: process.env.DISCORD_BOT_TOKEN,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

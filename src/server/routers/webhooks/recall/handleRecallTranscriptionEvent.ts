@@ -13,6 +13,7 @@ import {
 } from "@/lib/schemas/BotTriggerEventSchema";
 import { WebhookQueueingService } from "@/server/services/WebhookQueueingService";
 import { WebhookEventType } from "@/lib/constants/WebhookEventType";
+import { RecallService } from "@/server/services/RecallService";
 
 export const handleRecallTranscription = async (
   data: z.infer<typeof RecallWebhookEventSchema>["data"],
@@ -68,9 +69,10 @@ export const handleRecallTranscription = async (
     return;
   }
 
-  const { botTemplate } = bot;
+  await RecallService.sendProcessingMessage({ recallBotId: data.bot_id });
 
   // Parse the template data into trigger events
+  const { botTemplate } = bot;
   const triggerEventTemplates = botTemplate.botTemplateApps.map((app) => {
     const appData = app.botTemplateAppDataFields.reduce((acc, field) => {
       if (field.value) {
