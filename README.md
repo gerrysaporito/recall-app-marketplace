@@ -14,7 +14,7 @@ Just ask [bot name] to do the thing and thank them for their time (the command s
 
 For Developers:
 
-- **Create your own app/integration**: Create a trigger to your app that anyone can activate in a call
+- **Create your own app/integration**: Any developer can create a trigger to their app that any user can activate in a call through their bot
 - **Communicate with the call through the bot**: Follow up with messages in-chat with a simple-to-use API
 
 For Users:
@@ -30,6 +30,10 @@ Current Integrations:
 
 Note: These integrations are just POCs to showcase the trigger system and are independent of the main app. These can be improved pretty quickly to become fully functional if needed by the developer who created the integration
 
+Flows:
+![alt text](image-1.png)
+The above image shows the flow for the different types of users (developer, user, and bot) and how they interact with the system
+
 ## ⚙️ API
 
 We currently have the following APIs:
@@ -39,7 +43,8 @@ We currently have the following APIs:
     - `message`: `string` - The message to send to the chat
     - NOTE: This is not the recall bot ID but the actual bot id found in the dashboard
 
-📁 Repository Structure
+## 📁 Repository Structure
+
 The application follows a typical Next.js structure with some custom organization:
 
 ```
