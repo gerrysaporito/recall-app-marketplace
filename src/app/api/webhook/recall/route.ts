@@ -1,32 +1,8 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
-import { handleRecallTranscription } from "./_routers/handleRecallTranscriptionEvent";
+import { handleRecallTranscription } from "@/server/routers/webhooks/recall/handleRecallTranscriptionEvent";
 import { ServerLogger } from "@/server/services/LoggerService/ServerLogger";
 import cuid from "cuid";
-
-export const RecallWebhookEventSchema = z.object({
-  event: z.string(),
-  data: z.object({
-    bot_id: z.string(),
-    recording_id: z.string(),
-    transcript: z.object({
-      original_transcript_id: z.number(),
-      speaker: z.string().nullish(),
-      speaker_id: z.number(),
-      words: z.array(
-        z.object({
-          text: z.string(),
-          start_time: z.number(),
-          end_time: z.number(),
-          confidence: z.number(),
-        })
-      ),
-      is_final: z.boolean(),
-      language: z.string().nullable(),
-      source: z.string(),
-    }),
-  }),
-});
+import { RecallWebhookEventSchema } from "@/lib/schemas/RecallWebhookEventSchema";
 
 export async function POST(request: Request) {
   const logger = new ServerLogger({

@@ -1,6 +1,6 @@
 import { DbService } from "@/server/services/DbService";
 import { z } from "zod";
-import { RecallWebhookEventSchema } from "../route";
+import { RecallWebhookEventSchema } from "@/lib/schemas/RecallWebhookEventSchema";
 import { OpenAiService } from "@/server/services/OpenAiService";
 import { ServerLogger } from "@/server/services/LoggerService/ServerLogger";
 import {
